@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ledger — Debt & Investment Trajectory Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#ece4d9; --cream:#f4f0ea; --card:#fffbf5;
+    --ink:#4f483e; --ink-deep:#3a342c; --muted:#8a7d6b;
+    --accent:#f54001; --accent-tint:#ffc198; --rule:#d8cfc0;
+    --good:#3d6b4f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:14.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  /* masthead */
+  .masthead{max-width:1160px;margin:0 auto;padding:24px 28px 0}
+  .meta-row{display:flex;justify-content:space-between;align-items:center;gap:14px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--ink);padding-bottom:9px}
+  .meta-row a{color:var(--muted);text-decoration:none}
+  .meta-row a:hover{color:var(--accent)}
+  .curwrap{display:inline-flex;align-items:center;gap:8px}
+  .curwrap select{
+    background:var(--card);border:1px solid var(--ink);color:var(--ink-deep);
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;
+    padding:4px 8px;cursor:pointer;outline:none;
+  }
+  .curwrap select:focus{border-color:var(--accent)}
+
+  /* cloud sync bar */
+  .cloudbar{
+    max-width:1160px;margin:14px auto 0;padding:0 28px;
+  }
+  .cloudbar-inner{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    border:1px solid var(--ink);background:var(--card);padding:9px 16px;
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;
+  }
+  .cloudbar .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+  .cloudbar.on .dot{background:var(--good)}
+  .cloudbar .status{color:var(--muted)}
+  .cloudbar .who{color:var(--ink-deep);font-weight:700}
+  .cloudbar button{
+    background:none;border:1px solid var(--ink);color:var(--ink-deep);
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    padding:5px 12px;cursor:pointer;
+  }
+  .cloudbar button:hover{border-color:var(--accent);color:var(--accent)}
+  .cloudbar button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .cloudbar button.primary:hover{opacity:.9;color:#fff}
+  .cloudbar input{
+    background:var(--cream);border:1px solid var(--rule);color:var(--ink-deep);
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;padding:5px 8px;width:180px;outline:none;
+  }
+  .cloudbar input:focus{border-color:var(--accent)}
+  .cloudbar .err{color:#a32c00;width:100%}
+  .nameplate{text-align:center;padding:28px 0 22px;border-bottom:4px double var(--ink)}
+  .nameplate h1{font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(34px,6vw,60px);color:var(--ink-deep);letter-spacing:-.01em}
+  .nameplate .tag{margin-top:10px;font-size:12px;color:var(--muted);letter-spacing:.26em;text-transform:uppercase}
+
+  /* layout */
+  .wrap{max-width:1160px;margin:36px auto 60px;padding:0 28px;display:grid;grid-template-columns:430px 1fr;gap:40px;align-items:start}
+  @media(max-width:960px){.wrap{grid-template-columns:1fr}}
+
+  /* input column */
+  .panel{background:var(--cream);border:1px solid var(--ink);padding:20px 20px 14px;margin-bottom:22px}
+  .panel>h2{font-family:'Playfair Display',serif;font-weight:700;font-size:19px;color:var(--ink-deep);border-bottom:1px solid var(--ink);padding-bottom:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:baseline}
+  .panel>h2 .sum{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--accent)}
+  .panel .hint{font-size:11.5px;color:var(--muted);margin:6px 0 10px}
+  .row{display:grid;gap:6px;padding:8px 0;border-bottom:1px solid var(--rule);align-items:end}
+  .row.cols-2{grid-template-columns:1fr 110px 24px}
+  .row.cols-4{grid-template-columns:1fr 92px 62px 92px 24px}
+  .row label{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+  .row input{
+    width:100%;background:var(--card);border:1px solid var(--rule);color:var(--ink-deep);
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;padding:6px 8px;outline:none;
+  }
+  .row input:focus{border-color:var(--accent)}
+  .row .del{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px 2px;line-height:1}
+  .row .del:hover{color:var(--accent)}
+  .add{
+    margin-top:10px;background:none;border:1px dashed var(--muted);color:var(--muted);
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    padding:7px 0;width:100%;cursor:pointer;
+  }
+  .add:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* results column */
+  .sticky{position:sticky;top:24px}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--ink);border:1px solid var(--ink);margin-bottom:22px}
+  @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi .val{font-size:18px}
+  .kpi{background:var(--card);padding:14px 16px}
+  .kpi .lab{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .kpi .val{font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:700;color:var(--ink-deep);margin-top:3px}
+  .kpi .val.hot{color:var(--accent)}
+  .kpi .sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .chartbox{background:var(--card);border:1px solid var(--ink);padding:16px}
+  .chartbox h3{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--ink-deep);margin-bottom:2px}
+  .chartbox .note{font-size:11px;color:var(--muted);margin-bottom:10px}
+  canvas{width:100%;height:auto;display:block}
+  .legend{display:flex;gap:20px;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
+  .legend span{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+  .legend i{display:inline-block;width:18px;height:3px}
+  .warn{
+    display:none;background:#fbe9e2;border:1px solid var(--accent);color:#a32c00;
+    font-size:12.5px;padding:10px 14px;margin-bottom:18px;font-family:'JetBrains Mono',monospace;
+  }
+  .yrtable{width:100%;border-collapse:collapse;font-size:12px;margin-top:18px}
+  .yrtable caption{text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .yrtable th{text-align:left;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-top:1.5px solid var(--ink);border-bottom:1px solid var(--ink);padding:6px 8px 6px 0}
+  .yrtable td{padding:5px 8px 5px 0;border-bottom:1px solid var(--rule);font-family:'JetBrains Mono',monospace;font-size:11.5px}
+  .yrtable td.r,.yrtable th.r{text-align:right}
+
+  /* cash-flow split */
+  .flowbar{display:flex;height:38px;border:1px solid var(--ink);background:var(--card);overflow:hidden;margin-bottom:10px}
+  .flowbar div{height:100%;border-right:1px solid var(--paper);min-width:0}
+  .flowbar div:last-child{border-right:none}
+  .flowtable{width:100%;border-collapse:collapse;font-size:12px}
+  .flowtable th{text-align:left;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-top:1.5px solid var(--ink);border-bottom:1px solid var(--ink);padding:6px 8px 6px 0}
+  .flowtable td{padding:5px 8px 5px 0;border-bottom:1px solid var(--rule);font-family:'JetBrains Mono',monospace;font-size:11.5px;vertical-align:middle}
+  .flowtable td.r,.flowtable th.r{text-align:right}
+  .flowtable tbody tr:last-child td{border-bottom:1.5px solid var(--ink)}
+  .flowtable .sw{display:inline-block;width:11px;height:11px;margin-right:7px;vertical-align:-1px}
+  .flowtable tr.total td{font-weight:700;color:var(--ink-deep);border-bottom:1.5px solid var(--ink)}
+  .flowtable tr.neg td{color:#a32c00;font-weight:700}
+  .yrtable tbody tr:last-child td{border-bottom:1.5px solid var(--ink)}
+
+  footer{border-top:1px solid var(--ink);background:var(--cream)}
+  .fineprint{max-width:1160px;margin:0 auto;padding:18px 28px 34px;font-size:11px;line-height:1.6;color:var(--muted)}
+  .fineprint b{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="meta-row">
+    <span>The Compounding Plan · Companion Tool</span>
+    <span class="curwrap">Currency
+      <select id="cur-select">
+        <option value="USD">USD — US Dollar</option>
+        <option value="AED">AED — UAE Dirham</option>
+        <option value="SAR">SAR — Saudi Riyal</option>
+        <option value="QAR" selected>QAR — Qatari Riyal</option>
+        <option value="KWD">KWD — Kuwaiti Dinar</option>
+        <option value="BHD">BHD — Bahraini Dinar</option>
+        <option value="OMR">OMR — Omani Rial</option>
+        <option value="EUR">EUR — Euro</option>
+        <option value="GBP">GBP — British Pound</option>
+        <option value="INR">INR — Indian Rupee</option>
+        <option value="EGP">EGP — Egyptian Pound</option>
+        <option value="PKR">PKR — Pakistani Rupee</option>
+        <option value="PHP">PHP — Philippine Peso</option>
+      </select>
+    </span>
+  </div>
+  <div class="nameplate">
+    <h1>The Ledger</h1>
+    <div class="tag">Debt reduction vs. time — with your investments alongside</div>
+  </div>
+</header>
+
+<div class="cloudbar">
+  <div class="cloudbar-inner">
+    <span class="dot"></span>
+    <span class="status" id="cl-status">Local only — your data stays in this browser</span>
+    <span class="who" id="cl-who"></span>
+    <span style="flex:1"></span>
+    <span id="cl-form" style="display:contents">
+      <input id="cl-email" type="email" placeholder="email" autocomplete="email">
+      <input id="cl-pass" type="password" placeholder="password" autocomplete="current-password">
+      <button id="cl-signin" class="primary">Sign in</button>
+      <button id="cl-signup">Sign up</button>
+    </span>
+    <button id="cl-signout" style="display:none">Sign out</button>
+    <span class="err" id="cl-err"></span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ============ INPUTS ============ -->
+  <div>
+    <div class="panel" id="p-income">
+      <h2>Income <span class="sum" id="sum-income"></span></h2>
+      <div class="hint">Net monthly amounts that actually reach you (after any salary deductions not listed as debts below).</div>
+      <div class="rows" data-kind="income"></div>
+      <button class="add" data-add="income">+ Add income</button>
+    </div>
+
+    <div class="panel" id="p-debt">
+      <h2>Debts &amp; Loans <span class="sum" id="sum-debt"></span></h2>
+      <div class="hint">Balance, annual rate (APR %) and the scheduled monthly payment. Paid off highest-rate first (avalanche); freed payments roll into the next debt.</div>
+      <div class="rows" data-kind="debt"></div>
+      <button class="add" data-add="debt">+ Add debt</button>
+    </div>
+
+    <div class="panel" id="p-card">
+      <h2>Credit Cards <span class="sum" id="sum-card"></span></h2>
+      <div class="hint">Only balances you revolve month to month. Cards paid in full belong under Expenses.</div>
+      <div class="rows" data-kind="card"></div>
+      <button class="add" data-add="card">+ Add card</button>
+    </div>
+
+    <div class="panel" id="p-oblig">
+      <h2>Obligations <span class="sum" id="sum-oblig"></span></h2>
+      <div class="hint">Fixed monthly commitments: rent, utilities, school fees, remittances, insurance.</div>
+      <div class="rows" data-kind="oblig"></div>
+      <button class="add" data-add="oblig">+ Add obligation</button>
+    </div>
+
+    <div class="panel" id="p-exp">
+      <h2>Living Expenses <span class="sum" id="sum-exp"></span></h2>
+      <div class="hint">Variable monthly spending: food, transport, leisure — a rough average is enough.</div>
+      <div class="rows" data-kind="exp"></div>
+      <button class="add" data-add="exp">+ Add expense</button>
+    </div>
+
+    <div class="panel" id="p-inv">
+      <h2>Investing &amp; Cash</h2>
+      <div class="hint">Your market engine: current invested balance, what you add monthly, and a long-run return assumption (be honest — 8% is a fair planning number, not a promise).</div>
+      <div class="row cols-2" style="grid-template-columns:1fr 130px">
+        <div><label>Already invested</label><input type="number" id="inv-bal" value="5000" min="0" step="100"></div>
+        <div><label>Return %/yr</label><input type="number" id="inv-ret" value="8" step="0.5"></div>
+      </div>
+      <div class="row cols-2" style="grid-template-columns:1fr 130px">
+        <div><label>Monthly to stocks</label><input type="number" id="inv-month" value="1000" min="0" step="25"></div>
+        <div><label>Extra to debt / month</label><input type="number" id="inv-extra" value="0" min="0" step="25"></div>
+      </div>
+      <div class="hint" style="margin-top:12px">Your safety cushion: cash you hold today and the yield it earns (money-market ~3.6%). The unallocated monthly remainder accumulates here.</div>
+      <div class="row cols-2" style="grid-template-columns:1fr 130px">
+        <div><label>Cash buffer today</label><input type="number" id="cash-bal" value="3000" min="0" step="100"></div>
+        <div><label>Cash yield %/yr</label><input type="number" id="cash-yield" value="4" min="0" step="0.1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <div class="sticky">
+    <div class="warn" id="warn"></div>
+
+    <div class="chartbox" style="margin-bottom:22px">
+      <h3>Monthly Cash Flow</h3>
+      <div class="note" id="flow-note">Where each month's income goes — enter your income to activate</div>
+      <div class="flowbar" id="flowbar"></div>
+      <table class="flowtable">
+        <thead><tr><th>Destination</th><th class="r">Amount</th><th class="r">% of income</th></tr></thead>
+        <tbody id="flow-body"></tbody>
+      </table>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="lab">Debt-free in</div><div class="val hot" id="k-debtfree">—</div><div class="sub" id="k-debtfree-sub"></div></div>
+      <div class="kpi"><div class="lab">Total interest paid</div><div class="val" id="k-interest">—</div><div class="sub">across all debts &amp; cards</div></div>
+      <div class="kpi"><div class="lab">Net worth turns positive</div><div class="val" id="k-zero">—</div><div class="sub" id="k-zero-sub">cash + investments − debt</div></div>
+      <div class="kpi"><div class="lab">Savings after 1 year</div><div class="val" id="k-cash12">—</div><div class="sub">buffer building up</div></div>
+      <div class="kpi"><div class="lab">Savings at debt-free</div><div class="val" id="k-cashdf">—</div><div class="sub" id="k-cashdf-sub"></div></div>
+      <div class="kpi"><div class="lab">Investments at debt-free</div><div class="val" id="k-inv">—</div><div class="sub" id="k-inv-sub"></div></div>
+    </div>
+
+    <div class="chartbox">
+      <h3>Trajectory</h3>
+      <div class="note" id="chart-note">Monthly simulation · click legend figure to toggle</div>
+      <canvas id="chart" width="900" height="520"></canvas>
+      <div class="legend">
+        <span><i style="background:#a32c00"></i>Total debt</span>
+        <span><i style="background:#3d6b4f"></i>Stock investments</span>
+        <span><i style="background:#d9a441"></i>Cash savings</span>
+        <span><i style="background:#4f483e"></i>Net worth</span>
+      </div>
+      <table class="yrtable">
+        <caption>Yearly summary</caption>
+        <thead><tr><th>Date</th><th class="r">Debt remaining</th><th class="r">Cash savings</th><th class="r">Investments</th><th class="r">Net worth</th></tr></thead>
+        <tbody id="yr-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="fineprint">
+    <b>How it reads.</b> Surplus = income − obligations − expenses − scheduled debt payments. Your "monthly to stocks" and "extra to debt" must fit inside that surplus; freed payments from finished debts roll into the next-highest-rate balance. Figures are planning projections, not guarantees.
+    <b>Currency.</b> The selector changes display only — amounts are never converted between currencies; enter every figure in the same currency you pick.
+    <b>Privacy.</b> Signed out, everything stays in this browser. Signed in, your numbers sync to your own private cloud account — readable only by you, protected by row-level security.
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var KINDS = {
+    income:{cols:["name","amt"], labels:["Source","Amount / month"]},
+    oblig:{cols:["name","amt"], labels:["Obligation","Amount / month"]},
+    exp:{cols:["name","amt"], labels:["Expense","Amount / month"]},
+    debt:{cols:["name","bal","apr","pay"], labels:["Debt","Balance","APR %","Payment / month"]},
+    card:{cols:["name","bal","apr","pay"], labels:["Card","Balance","APR %","Payment / month"]}
+  };
+
+  /* ---------- currency ---------- */
+  var CUR = "QAR";
+  function curSym(){
+    try{
+      var parts = new Intl.NumberFormat("en-US",{style:"currency",currency:CUR,currencyDisplay:"narrowSymbol"}).formatToParts(1);
+      for(var i=0;i<parts.length;i++) if(parts[i].type==="currency") return parts[i].value;
+    }catch(e){}
+    return CUR+" ";
+  }
+  function isPrefixSym(){ return /[$€£¥₹﷼]/.test(curSym()); }
+
+  // Demo starting numbers — replace with your own
+  var SEED = {
+    income:[["Salary (net)", "12000"]],
+    debt:[["Personal loan", "40000", "8", "3200"]],
+    card:[["Credit card", "8000", "18", "800"]],
+    oblig:[["Rent & housing", "4000"],["Utilities & phone", "800"],["School", "2000"]],
+    exp:[["Food & groceries", "2500"],["Transport", "900"],["Leisure & other", "1200"]]
+  };
+
+  var LS_KEY = "ledger-v1";
+
+  function el(tag, cls, html){ var e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; }
+  function fmt(n){ if(!isFinite(n)) return "—"; var s=n<0?"-":""; n=Math.abs(n);
+    var num=n.toLocaleString("en-US",{maximumFractionDigits:0});
+    var sym=curSym();
+    return isPrefixSym() ? s+sym+num : s+num+" "+sym; }
+  function fmtK(v){ var sym=curSym(); var num = v>=1000 ? (v/1000).toFixed(0)+"k" : v.toFixed(0);
+    return isPrefixSym() ? sym+num : num+" "+sym; }
+  function monthLabel(start, offset){
+    var d=new Date(start.getFullYear(), start.getMonth()+offset, 1);
+    return d.toLocaleString("en-US",{month:"short"})+" "+d.getFullYear();
+  }
+
+  /* ---------- build input rows ---------- */
+  function addRow(kind, values){
+    var spec=KINDS[kind], vals=values||[];
+    var cols = (spec.cols.length===2)?"cols-2":"cols-4";
+    var row=el("div","row "+cols);
+    spec.cols.forEach(function(c,i){
+      var cell=el("div");
+      var lab=el("label",null,spec.labels[i]); cell.appendChild(lab);
+      var inp=document.createElement("input");
+      inp.dataset.field=c; inp.dataset.kind=kind;
+      if(c==="name"){ inp.type="text"; inp.value=vals[i]||""; inp.placeholder=spec.labels[i]; }
+      else{ inp.type="number"; inp.min="0"; inp.value=vals[i]||""; inp.placeholder="0"; inp.step = (c==="apr")?"0.1":"1"; }
+      cell.appendChild(inp); row.appendChild(cell);
+    });
+    var del=el("button","del","×"); del.title="Remove";
+    del.onclick=function(){ row.remove(); save(); compute(); };
+    row.appendChild(del);
+    document.querySelector('.rows[data-kind="'+kind+'"]').appendChild(row);
+  }
+
+  document.querySelectorAll("[data-add]").forEach(function(b){
+    b.onclick=function(){ addRow(b.dataset.add); save(); compute(); };
+  });
+
+  /* ---------- state ---------- */
+  function collect(){
+    var state={income:[],debt:[],card:[],oblig:[],exp:[]};
+    Object.keys(KINDS).forEach(function(kind){
+      document.querySelectorAll('.rows[data-kind="'+kind+'"] .row').forEach(function(row){
+        var item={};
+        row.querySelectorAll("input").forEach(function(inp){
+          item[inp.dataset.field]= (inp.dataset.field==="name") ? inp.value : (parseFloat(inp.value)||0);
+        });
+        state[kind].push(item);
+      });
+    });
+    state.inv={ bal:parseFloat(document.getElementById("inv-bal").value)||0,
+                ret:parseFloat(document.getElementById("inv-ret").value)||0,
+                month:parseFloat(document.getElementById("inv-month").value)||0,
+                extra:parseFloat(document.getElementById("inv-extra").value)||0,
+                cash:parseFloat(document.getElementById("cash-bal").value)||0,
+                cashYield:parseFloat(document.getElementById("cash-yield").value)||0 };
+    return state;
+  }
+
+  function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(collect())); localStorage.setItem(LS_KEY+"-cur", CUR); }catch(e){} cloudQueue(); }
+
+  function load(){
+    var c=null; try{ c=localStorage.getItem(LS_KEY+"-cur"); }catch(e){}
+    if(c){ CUR=c; document.getElementById("cur-select").value=c; }
+    var s=null; try{ s=JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){}
+    if(s && (s.income.length||s.debt.length||s.oblig.length||s.exp.length||s.card.length)){
+      Object.keys(KINDS).forEach(function(k){ (s[k]||[]).forEach(function(item){
+        addRow(k, KINDS[k].cols.map(function(c){ return item[c]!==""&&item[c]!=null ? item[c] : ""; }));
+      });});
+      if(s.inv){ document.getElementById("inv-bal").value=s.inv.bal;
+        document.getElementById("inv-ret").value=s.inv.ret;
+        document.getElementById("inv-month").value=s.inv.month;
+        document.getElementById("inv-extra").value=s.inv.extra;
+        if(s.inv.cash!=null) document.getElementById("cash-bal").value=s.inv.cash;
+        if(s.inv.cashYield!=null) document.getElementById("cash-yield").value=s.inv.cashYield; }
+    } else {
+      Object.keys(SEED).forEach(function(k){ SEED[k].forEach(function(v){ addRow(k,v); }); });
+    }
+  }
+
+  /* ---------- simulation ---------- */
+  function simulate(st){
+    var income = st.income.reduce(function(a,b){return a+b.amt;},0);
+    var fixed  = st.oblig.concat(st.exp).reduce(function(a,b){return a+b.amt;},0);
+    var debts  = st.debt.concat(st.card).filter(function(d){return d.bal>0;})
+                 .map(function(d){return {name:d.name||"Debt", bal:d.bal, apr:d.apr/100, pay:d.pay};});
+
+    var minTotal = debts.reduce(function(a,d){return a+d.pay;},0);
+    var freeCash = income - fixed - minTotal;
+    var need = st.inv.month + st.inv.extra;
+    var warn = null;
+    if (freeCash < 0) warn = "Deficit: expenses and debt payments exceed income by "+fmt(-freeCash)+" / month. The projection assumes you close this gap.";
+    else if (need > freeCash) warn = "Your investing + extra-debt plan ("+fmt(need)+"/mo) exceeds the free surplus ("+fmt(freeCash)+"/mo). Amounts were scaled down proportionally in the simulation.";
+
+    var scale = (freeCash>0 && need>freeCash) ? freeCash/need : 1;
+    var invAdd = st.inv.month*scale, extra0 = st.inv.extra*scale;
+
+    var inv = st.inv.bal, rInv = st.inv.ret/100/12;
+    var cash = st.inv.cash, rCash = st.inv.cashYield/100/12;
+    var start = new Date(); start = new Date(start.getFullYear(), start.getMonth(), 1);
+    var series=[{m:0, debt:debts.reduce(function(a,d){return a+d.bal;},0), inv:inv, cash:cash}];
+    var interest=0, zeroCross=null, debtFreeM=null;
+    var MAXM=600;
+
+    for(var m=1; m<=MAXM; m++){
+      // investments grow + contribution (contribution continues even after debt-free)
+      inv = inv*(1+rInv) + invAdd;
+      // cash savings: yield on positive balance + unallocated remainder (negative remainder draws cash down)
+      var remainingNow = freeCash - invAdd - extra0;
+      if (cash > 0) cash = cash*(1+rCash);
+      cash += remainingNow;
+
+      // accrue interest
+      debts.forEach(function(d){ if(d.bal>0){ var i=d.bal*d.apr/12; interest+=i; d.bal+=i; } });
+
+      // pool = all scheduled payments (freed ones roll over) + extra, until debt is gone
+      var active = debts.some(function(d){return d.bal>0;});
+      var pool = active ? minTotal + extra0 : 0;
+
+      // minimums first
+      debts.forEach(function(d){
+        if(d.bal>0){ var p=Math.min(d.pay, d.bal); d.bal-=p; pool-=p; }
+      });
+      // avalanche: remaining pool to highest APR
+      var guard=0;
+      while(pool>0.01 && guard++<50){
+        var target=null;
+        debts.forEach(function(d){ if(d.bal>0 && (!target||d.apr>target.apr)) target=d; });
+        if(!target) break;
+        var p=Math.min(pool, target.bal); target.bal-=p; pool-=p;
+      }
+
+      var totalDebt = debts.reduce(function(a,d){return a+Math.max(0,d.bal);},0);
+      series.push({m:m, debt:totalDebt, inv:inv, cash:cash});
+      if(debtFreeM===null && totalDebt<0.01 && (st.debt.concat(st.card)).some(function(d){return d.bal>0;})) debtFreeM=m;
+      if(zeroCross===null && inv + cash - totalDebt >= 0) zeroCross=m;
+      if(debtFreeM!==null && m>=debtFreeM+1 && m>120) break; // stop 1 month after debt-free if very long, cap later
+      if(m>=360) break;
+    }
+    // trim series: show until debt-free + a margin, at least 24 months, at most 360
+    var end = Math.min(series.length-1, Math.max(debtFreeM!=null?debtFreeM+6:120, 24, 120));
+    series = series.slice(0, end+1);
+
+    return {series:series, warn:warn, interest:interest, debtFreeM:debtFreeM,
+            zeroCross:zeroCross, invAtFree: debtFreeM!=null? series[Math.min(debtFreeM, series.length-1)].inv : null,
+            start:start, freeCash:freeCash, minTotal:minTotal, invAdd:invAdd, extraUsed:extra0,
+            income:income, fixed:fixed, hasDebt: st.debt.concat(st.card).some(function(d){return d.bal>0;})};
+  }
+
+  /* ---------- chart ---------- */
+  var showDebt=true, showInv=true, showCash=true, showNW=true;
+  function draw(res){
+    var cv=document.getElementById("chart"), ctx=cv.getContext("2d");
+    var W=cv.width, H=cv.height;
+    ctx.clearRect(0,0,W,H);
+    var s=res.series, n=s.length;
+    var maxV=1;
+    s.forEach(function(p){ maxV=Math.max(maxV, p.debt, p.inv, p.cash, Math.abs(p.inv+p.cash-p.debt)); });
+    maxV*=1.08;
+
+    var padL=64, padR=14, padT=14, padB=44;
+    var X=function(i){ return padL + (W-padL-padR)*(i/(n-1||1)); };
+    var Y=function(v){ return padT + (H-padT-padB)*(1 - v/maxV); };
+
+    // gridlines + y labels
+    ctx.font="11px 'JetBrains Mono', monospace"; ctx.fillStyle="#8a7d6b"; ctx.strokeStyle="#d8cfc0"; ctx.lineWidth=1;
+    for(var g=0; g<=4; g++){
+      var v=maxV*g/4, y=Y(v);
+      ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+      ctx.textAlign="right"; ctx.fillText(fmtK(v), padL-8, y+4);
+    }
+    // zero line for net worth reference
+    ctx.strokeStyle="#8a7d6b"; ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(padL,Y(0)); ctx.lineTo(W-padR,Y(0)); ctx.stroke(); ctx.setLineDash([]);
+
+    // x labels (~6 ticks)
+    ctx.textAlign="center";
+    var step=Math.max(1, Math.round((n-1)/6));
+    for(var i=0;i<n;i+=step){ ctx.fillText(monthLabel(res.start, s[i].m), X(i), H-padB+18); }
+
+    function line(get, color, width){
+      ctx.strokeStyle=color; ctx.lineWidth=width||2.5; ctx.beginPath();
+      s.forEach(function(p,i){ var x=X(i), y=Y(get(p)); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+      ctx.stroke();
+    }
+    if(showDebt) line(function(p){return p.debt;}, "#a32c00");
+    if(showInv)  line(function(p){return p.inv;}, "#3d6b4f");
+    if(showCash) line(function(p){return p.cash;}, "#d9a441");
+    if(showNW)   line(function(p){return p.inv+p.cash-p.debt;}, "#4f483e", 2);
+
+    // debt-free marker
+    if(res.debtFreeM!=null && res.debtFreeM<n){
+      var x=X(res.debtFreeM);
+      ctx.strokeStyle="#f54001"; ctx.setLineDash([4,4]); ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(x,padT); ctx.lineTo(x,H-padB); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle="#f54001"; ctx.textAlign="left";
+      ctx.fillText("DEBT-FREE · "+monthLabel(res.start, res.debtFreeM).toUpperCase(), x+6, padT+12);
+    }
+  }
+
+  /* ---------- monthly cash-flow split ---------- */
+  function renderFlow(st, res){
+    var bar=document.getElementById("flowbar"), tb=document.getElementById("flow-body");
+    var note=document.getElementById("flow-note");
+    bar.innerHTML=""; tb.innerHTML="";
+    var income=res.income;
+    if(income<=0){
+      note.textContent="Where each month's income goes — enter your income to activate";
+      var tr0=el("tr"); var td0=el("td",null,"Add your income on the left to see the breakdown."); td0.colSpan=3; tr0.appendChild(td0); tb.appendChild(tr0);
+      return;
+    }
+    note.textContent="Of "+fmt(income)+" coming in each month:";
+
+    var oblig=st.oblig.reduce(function(a,b){return a+b.amt;},0);
+    var exp=st.exp.reduce(function(a,b){return a+b.amt;},0);
+    var remaining=res.freeCash - res.invAdd - res.extraUsed;
+
+    var items=[
+      {name:"Obligations (rent, utilities…)", val:oblig, color:"#8a7d6b"},
+      {name:"Living expenses", val:exp, color:"#b5a88f"},
+      {name:"Debt & card payments", val:res.minTotal, color:"#a32c00"},
+      {name:"Stock investing", val:res.invAdd, color:"#3d6b4f"},
+      {name:"Extra to debt", val:res.extraUsed, color:"#f54001"},
+      {name: remaining>=0 ? "Remaining savings (unallocated)" : "Monthly shortfall", val:remaining, color: remaining>=0 ? "#ffc198" : "#7c1f00"}
+    ];
+
+    items.forEach(function(it){
+      var w=Math.max(0, it.val)/income*100;
+      if(w>0.5){ var seg=el("div"); seg.style.width=Math.min(w,100)+"%"; seg.style.background=it.color;
+        seg.title=it.name+" — "+fmt(it.val); bar.appendChild(seg); }
+    });
+
+    items.forEach(function(it){
+      var tr=el("tr"); if(it.val<0) tr.className="neg";
+      var td1=el("td"); var sw=el("span","sw"); sw.style.background=it.color; td1.appendChild(sw);
+      td1.appendChild(document.createTextNode(it.name)); tr.appendChild(td1);
+      tr.appendChild(el("td","r",fmt(it.val)));
+      tr.appendChild(el("td","r",(it.val/income*100).toFixed(1)+"%"));
+      tb.appendChild(tr);
+    });
+
+    var kept=res.invAdd+res.extraUsed+Math.max(0,remaining);
+    var trT=el("tr","total");
+    trT.appendChild(el("td",null,"Total kept — your savings rate"));
+    trT.appendChild(el("td","r",fmt(kept)+"/mo"));
+    trT.appendChild(el("td","r",(kept/income*100).toFixed(1)+"%"));
+    tb.appendChild(trT);
+  }
+
+  /* ---------- render ---------- */
+  function compute(){
+    var st=collect();
+    // sums
+    document.getElementById("sum-income").textContent = fmt(st.income.reduce(function(a,b){return a+b.amt;},0))+"/mo";
+    document.getElementById("sum-debt").textContent  = fmt(st.debt.reduce(function(a,b){return a+b.bal;},0));
+    document.getElementById("sum-card").textContent  = fmt(st.card.reduce(function(a,b){return a+b.bal;},0));
+    document.getElementById("sum-oblig").textContent = fmt(st.oblig.reduce(function(a,b){return a+b.amt;},0))+"/mo";
+    document.getElementById("sum-exp").textContent   = fmt(st.exp.reduce(function(a,b){return a+b.amt;},0))+"/mo";
+
+    var res=simulate(st);
+    renderFlow(st, res);
+
+    var w=document.getElementById("warn");
+    if(res.warn){ w.style.display="block"; w.textContent="⚠ "+res.warn; } else w.style.display="none";
+
+    document.getElementById("k-debtfree").textContent = !res.hasDebt ? "No debt" :
+      (res.debtFreeM!=null ? res.debtFreeM+" months" : "> 30 years");
+    document.getElementById("k-debtfree-sub").textContent = res.debtFreeM!=null ? monthLabel(res.start,res.debtFreeM) : "raise payments or lower APR";
+    document.getElementById("k-interest").textContent = res.hasDebt ? fmt(res.interest) : "$0";
+    document.getElementById("k-zero").textContent = res.zeroCross!=null ? monthLabel(res.start,res.zeroCross) : "beyond horizon";
+    document.getElementById("k-inv").textContent = res.invAtFree!=null ? fmt(res.invAtFree) :
+      fmt(res.series[res.series.length-1].inv);
+    document.getElementById("k-inv-sub").textContent = res.debtFreeM!=null ? "at "+monthLabel(res.start,res.debtFreeM) : "at end of horizon";
+
+    var cashAt = function(m){ return res.series[Math.min(m, res.series.length-1)].cash; };
+    document.getElementById("k-cash12").textContent = fmt(cashAt(12));
+    document.getElementById("k-cashdf").textContent = res.debtFreeM!=null ? fmt(cashAt(res.debtFreeM)) : fmt(cashAt(res.series.length-1).valueOf());
+    document.getElementById("k-cashdf-sub").textContent = res.debtFreeM!=null ? "at "+monthLabel(res.start,res.debtFreeM) : "at end of horizon";
+
+    // yearly table
+    var tb=document.getElementById("yr-body"); tb.innerHTML="";
+    res.series.forEach(function(p){
+      if(p.m===0 || p.m%12===0 || p.m===res.debtFreeM || p.m===res.series[res.series.length-1].m){
+        var tr=el("tr");
+        tr.appendChild(el("td",null,monthLabel(res.start,p.m)));
+        tr.appendChild(el("td","r",fmt(p.debt)));
+        tr.appendChild(el("td","r",fmt(p.cash)));
+        tr.appendChild(el("td","r",fmt(p.inv)));
+        var nw=el("td","r",fmt(p.inv+p.cash-p.debt));
+        if(p.inv+p.cash-p.debt<0) nw.style.color="#a32c00"; else nw.style.color="#3d6b4f";
+        tr.appendChild(nw);
+        tb.appendChild(tr);
+      }
+    });
+
+    draw(res);
+  }
+
+  // legend toggles
+  document.querySelectorAll(".legend span").forEach(function(sp,i){
+    sp.style.cursor="pointer";
+    sp.onclick=function(){
+      if(i===0)showDebt=!showDebt; else if(i===1)showInv=!showInv; else if(i===2)showCash=!showCash; else showNW=!showNW;
+      sp.style.opacity=(i===0?showDebt:i===1?showInv:i===2?showCash:showNW)?1:0.35;
+      compute();
+    };
+  });
+
+  // recompute on any input
+  document.addEventListener("input", function(){ save(); compute(); });
+
+  // currency switch
+  document.getElementById("cur-select").addEventListener("change", function(){
+    CUR = this.value; save(); compute();
+  });
+
+  load();
+  compute();
+
+  /* ---------- cloud sync (Neon Auth + Data API) ---------- */
+  var AUTH_URL = "https://ep-cold-poetry-axjdfnxy.neonauth.c-4.us-east-2.aws.neon.tech/neondb/auth";
+  var API_URL  = "https://ep-cold-poetry-axjdfnxy.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1";
+  var CLOUD = { user:null, jwt:null, jwtExp:0, timer:null, applying:false };
+
+  function clSet(status, err){
+    document.getElementById("cl-status").textContent = status;
+    document.getElementById("cl-err").textContent = err || "";
+  }
+  function clRender(){
+    var on = !!CLOUD.user;
+    document.querySelector(".cloudbar").classList.toggle("on", on);
+    document.getElementById("cl-form").style.display = on ? "none" : "contents";
+    document.getElementById("cl-signout").style.display = on ? "" : "none";
+    document.getElementById("cl-who").textContent = on ? CLOUD.user.email : "";
+  }
+
+  function clAuthFetch(path, opts){
+    opts = opts || {};
+    opts.credentials = "include";
+    opts.headers = Object.assign({"Content-Type":"application/json"}, opts.headers || {});
+    return fetch(AUTH_URL + path, opts).then(function(r){
+      return r.json().catch(function(){ return null; }).then(function(data){
+        if(!r.ok) throw new Error((data && (data.message || data.error)) || ("HTTP " + r.status));
+        return data;
+      });
+    });
+  }
+
+  function clJwt(force){
+    var now = Date.now()/1000;
+    if(!force && CLOUD.jwt && CLOUD.jwtExp - now > 60) return Promise.resolve(CLOUD.jwt);
+    return clAuthFetch("/token").then(function(d){
+      var t = d && (d.token || d.jwt);
+      if(!t) throw new Error("No token issued");
+      CLOUD.jwt = t;
+      try{
+        CLOUD.jwtExp = JSON.parse(atob(t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).exp || (now + 300);
+      }catch(e){ CLOUD.jwtExp = now + 300; }
+      return t;
+    });
+  }
+
+  function clApi(method, qs, body, prefer){
+    return clJwt().then(function(jwt){
+      var headers = {"Authorization":"Bearer " + jwt, "Content-Type":"application/json"};
+      if(prefer) headers["Prefer"] = prefer;
+      return fetch(API_URL + "/ledger_state" + (qs || ""), {
+        method: method, headers: headers,
+        body: body ? JSON.stringify(body) : undefined
+      });
+    }).then(function(r){
+      if(r.status === 401 || r.status === 403) CLOUD.jwt = null;  // force refresh next time
+      if(!r.ok) return r.text().then(function(t){ throw new Error(t.slice(0,140) || ("HTTP " + r.status)); });
+      return r.text().then(function(t){ return t ? JSON.parse(t) : null; });
+    });
+  }
+
+  function cloudQueue(){
+    if(!CLOUD.user || CLOUD.applying) return;
+    clSet("Saving…");
+    clearTimeout(CLOUD.timer);
+    CLOUD.timer = setTimeout(cloudPush, 900);
+  }
+  function cloudPush(){
+    if(!CLOUD.user) return;
+    clApi("POST", "", [{user_id: CLOUD.user.id, data: {cur: CUR, state: collect()}}], "resolution=merge-duplicates, return=minimal")
+      .then(function(){
+        clSet("Saved to cloud ✓ " + new Date().toLocaleTimeString("en-GB",{hour:"2-digit", minute:"2-digit"}));
+      })
+      .catch(function(e){ clSet("Offline — saved locally", String(e.message || e)); });
+  }
+
+  function applyRemote(d){
+    CLOUD.applying = true;
+    try{
+      var s = d.state || d;   // tolerate unwrapped legacy shape
+      if(d.cur){ CUR = d.cur; document.getElementById("cur-select").value = d.cur; }
+      document.querySelectorAll(".rows .row").forEach(function(r){ r.remove(); });
+      Object.keys(KINDS).forEach(function(k){
+        (s[k] || []).forEach(function(item){
+          addRow(k, KINDS[k].cols.map(function(f){ return (item[f] !== "" && item[f] != null) ? item[f] : ""; }));
+        });
+      });
+      if(s.inv){
+        document.getElementById("inv-bal").value = s.inv.bal;
+        document.getElementById("inv-ret").value = s.inv.ret;
+        document.getElementById("inv-month").value = s.inv.month;
+        document.getElementById("inv-extra").value = s.inv.extra;
+        if(s.inv.cash != null) document.getElementById("cash-bal").value = s.inv.cash;
+        if(s.inv.cashYield != null) document.getElementById("cash-yield").value = s.inv.cashYield;
+      }
+      save(); compute();
+    } finally { CLOUD.applying = false; }
+  }
+
+  function cloudPull(){
+    return clApi("GET", "?user_id=eq." + encodeURIComponent(CLOUD.user.id) + "&select=data")
+      .then(function(rows){
+        var d = rows && rows[0] && rows[0].data;
+        if(d){ applyRemote(d); clSet("Cloud data loaded ✓"); }
+        else { clSet("Signed in — uploading this device’s data…"); cloudPush(); }
+      })
+      .catch(function(e){ clSet("Signed in — cloud read failed, using local data", String(e.message || e)); });
+  }
+
+  function clAuth(path){
+    var email = document.getElementById("cl-email").value.trim();
+    var pass  = document.getElementById("cl-pass").value;
+    if(!email || !pass){ clSet("Enter email and password"); return; }
+    clSet("Working…");
+    var body = (path === "/sign-up/email")
+      ? {name: email.split("@")[0], email: email, password: pass}
+      : {email: email, password: pass};
+    clAuthFetch(path, {method:"POST", body: JSON.stringify(body)})
+      .then(function(d){
+        if(d && d.user) return d.user;
+        return clAuthFetch("/get-session").then(function(s){ return s && s.user; });
+      })
+      .then(function(u){
+        if(!u) throw new Error("Sign-in did not return a session");
+        CLOUD.user = u; CLOUD.jwt = null;
+        clRender(); clSet("Signed in — loading cloud data…");
+        return cloudPull();
+      })
+      .catch(function(e){
+        var m = String(e.message || e);
+        var diag = " [page: " + location.protocol + "//" + location.host +
+                   (window.top !== window.self ? ", in-frame" : ", own-tab") + "]";
+        if(/failed to fetch|networkerror|load failed|403|forbidden|null origin/i.test(m)){
+          m = "Sign-in isn't enabled for this address yet. Send me this whole line: " + location.origin + diag;
+        } else {
+          m = m + diag;
+        }
+        clSet("Local only — sign-in failed", m);
+      });
+  }
+
+  function clSignOut(){
+    clAuthFetch("/sign-out", {method:"POST", body:"{}"}).catch(function(){});
+    CLOUD.user = null; CLOUD.jwt = null;
+    clRender(); clSet("Signed out — data stays in this browser");
+  }
+
+  document.getElementById("cl-signin").onclick = function(){ clAuth("/sign-in/email"); };
+  document.getElementById("cl-signup").onclick = function(){ clAuth("/sign-up/email"); };
+  document.getElementById("cl-signout").onclick = clSignOut;
+
+  // resume existing session, if any
+  clAuthFetch("/get-session")
+    .then(function(s){
+      if(s && s.user){
+        CLOUD.user = s.user; clRender(); clSet("Signed in — loading cloud data…");
+        return cloudPull();
+      }
+      clRender();
+    })
+    .catch(function(){ clRender(); });
+})();
+</script>
+
+</body>
+</html>
