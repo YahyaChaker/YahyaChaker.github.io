@@ -110,6 +110,16 @@
   .rowline input{background:var(--card);border:1px solid var(--rule);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:12.5px;padding:6px 8px;outline:none;width:130px}
   .rowline input:focus{border-color:var(--accent)}
 
+  /* AI analyst */
+  .ai-badge{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);padding:2px 8px}
+  .ai-head{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--ink-deep);margin:16px 0 10px;border-bottom:1px solid var(--rule);padding-bottom:4px}
+  .ai-verdict{font-family:'Playfair Display',serif;font-size:16px;font-style:italic;color:var(--ink-deep);padding:10px 14px;border-left:3px solid var(--accent);background:var(--card);margin-bottom:12px}
+  table.ait{width:100%;border-collapse:collapse;margin-top:4px}
+  .ait th{text-align:left;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--ink);padding:5px 8px 5px 0}
+  .ait td{padding:5px 8px 5px 0;border-bottom:1px solid var(--rule);font-family:'JetBrains Mono',monospace;font-size:11.5px}
+  .ait td.r{text-align:right}
+  .ai-spin{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:10px}
+
   canvas{width:100%;height:auto;display:block}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
   @media(max-width:900px){.grid2{grid-template-columns:1fr}}
@@ -177,6 +187,21 @@
   <!-- ============ CURRENT STATEMENT ============ -->
   <div id="current" class="hidden">
     <div class="kpis" id="k-kpis"></div>
+
+    <!-- ============ AI ANALYST ============ -->
+    <div class="panel" id="p-ai">
+      <h2>The AI Analyst <span class="ai-badge">powered by Kimi</span></h2>
+      <div class="hint">Sends this statement's transactions (merchant, date, amount) to the Moonshot/Kimi API using <b>your own API key</b>. The key is stored only in this browser and is sent nowhere else; the PDF itself never leaves your device. One analysis ≈ a few thousand tokens on your own Kimi account.</div>
+      <div class="rowline">
+        <div><label>Kimi API key (platform.moonshot.ai)</label><input type="password" id="ai-key" placeholder="sk-…" autocomplete="off" style="width:280px"></div>
+        <div><label>Platform</label><select id="ai-base" style="background:var(--card);border:1px solid var(--rule);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:12px;padding:6px 8px;outline:none">
+          <option value="https://api.moonshot.ai/v1" selected>moonshot.ai — international</option>
+          <option value="https://api.moonshot.cn/v1">moonshot.cn — China</option>
+        </select></div>
+        <div><button class="btn primary" id="ai-go" style="padding:8px 18px">Ask the analyst — full read of this statement</button></div>
+      </div>
+      <div id="ai-out"></div>
+    </div>
 
     <div class="grid2">
       <div class="panel">
@@ -718,6 +743,7 @@ function handleFile(file){
     persist();
     CURRENT = st;
     dropEl.querySelector(".big").textContent = "Drop the statement PDF here — or click to choose";
+    document.getElementById("ai-out").innerHTML = "";
     renderAll();
   }).catch(function(e){
     dropEl.querySelector(".big").textContent = "Drop the statement PDF here — or click to choose";
@@ -739,6 +765,171 @@ var cc = currentCash();
 if(cc!=null) cashIn.value = cc;
 envIn.addEventListener("input", function(){ STORE.envelope = parseFloat(envIn.value)||0; persist(); renderAll(); });
 cashIn.addEventListener("input", function(){ STORE.cashbuf = cashIn.value===""?null:(parseFloat(cashIn.value)||0); persist(); renderAll(); });
+
+/* ================= AI analyst (Kimi / Moonshot) ================= */
+var AI_KEY_LS = "ledger-cards-aikey";
+var aiKeyIn = document.getElementById("ai-key");
+var aiBaseIn = document.getElementById("ai-base");
+var aiGo = document.getElementById("ai-go");
+var aiOut = document.getElementById("ai-out");
+try{ aiKeyIn.value = localStorage.getItem(AI_KEY_LS) || ""; }catch(e){}
+aiKeyIn.addEventListener("change", function(){ try{ localStorage.setItem(AI_KEY_LS, aiKeyIn.value.trim()); }catch(e){} });
+
+function aiNote(tone, t, x){
+  var d = el("div","note "+tone);
+  d.appendChild(el("div","note-t", esc(t)));
+  if(x) d.appendChild(el("div","note-x", esc(x)));
+  return d;
+}
+
+function aiFetch(path, body){
+  var key = aiKeyIn.value.trim();
+  var opts = { method: body ? "POST" : "GET", headers: { "Authorization": "Bearer " + key } };
+  if(body){ opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+  return fetch(aiBaseIn.value + path, opts).then(function(r){
+    return r.text().then(function(t){
+      var j = null; try{ j = JSON.parse(t); }catch(e){}
+      if(!r.ok) throw new Error((j && j.error && j.error.message) || ("HTTP " + r.status));
+      return j;
+    });
+  });
+}
+
+function pickModel(list){
+  var ids = (list && list.data || []).map(function(m){ return m.id || ""; });
+  function find(rx){ for(var i=0;i<ids.length;i++) if(rx.test(ids[i])) return ids[i]; return null; }
+  return find(/^kimi-k2(?!.*thinking)/i) || find(/^kimi-k2/i) || find(/^kimi-latest/i) ||
+         find(/^moonshot-v1-32k/i) || find(/^moonshot-v1-8k/i) || ids[0] || "kimi-k2-0905-preview";
+}
+
+function buildAiPayload(st){
+  return {
+    statement_date: st.header.stmtDate, due_date: st.header.dueDate,
+    payable_full_auto_debit_qar: Math.abs(st.header.minDue || st.spend - st.credits),
+    total_spend_qar: +st.spend.toFixed(2), refunds_qar: +st.credits.toFixed(2),
+    monthly_envelope_qar: STORE.envelope || 15000,
+    keyword_categories_qar: st.cats,
+    transactions: st.txns.map(function(t){ return { date:t.date, merchant:t.desc, cur:t.cur, amount:t.amt, qar:t.bill }; })
+  };
+}
+
+var AI_SYS = [
+"You are an elite personal-finance coach analysing one monthly credit-card statement for a user in Qatar (currency: QAR).",
+"Card mechanics: 55,000 QAR limit; statement issued on the 6th; 100% of the statement is auto-debited from the user's salary on the 30th; salary arrives between the 1st and 5th. The user is breaking a card-dependency cycle using a hard monthly envelope (given in the data). Rules already in force: no cash advances ever; travel and large purchases must be pre-funded from sinking funds; subscriptions get culled.",
+"Respond with STRICT JSON ONLY — no markdown fences, no commentary — in exactly this shape:",
+'{',
+' "headline": "one-sentence verdict on this statement",',
+' "coaching": [{"tone":"good|warn|bad|info","title":"short title","text":"2-4 sentences with exact figures"}],',
+' "plan": ["step 1", "step 2"],',
+' "targets": [{"category":"...","cap_qar":123}],',
+' "recat": [{"match":"MERCHANTSUBSTRING","category":"Groceries"}]',
+'}',
+"Requirements: 3-6 coaching findings, personalised and blunt, quoting exact amounts; plan = 3-6 concrete steps covering the due date and the next cycle; targets = per-category caps for next cycle that sum to no more than the envelope, using these category names only: Groceries, Food delivery, Dining & cafés, Subscriptions & apps, Medical & pharmacy, Travel & transport, Utilities phone & gov, Shopping & retail, Other; recat = corrections for obvious miscategorised merchants only (match = uppercase merchant substring without spaces, category = one of the names above or 'Cash advance & fees'). Never promise returns. No AI disclaimers."
+].join("\n");
+
+function extractJson(text){
+  var t = String(text || "").trim().replace(/^```(json)?/i,"").replace(/```$/,"").trim();
+  var a = t.indexOf("{"), b = t.lastIndexOf("}");
+  if(a<0 || b<=a) throw new Error("The analyst returned no JSON — try again.");
+  return JSON.parse(t.slice(a, b+1));
+}
+
+function applyRecat(st, rules){
+  if(!Array.isArray(rules) || !rules.length) return 0;
+  var changed = 0;
+  st.txns.forEach(function(t){
+    if(t.bill >= 0) return;
+    var d = normKey(t.desc);
+    for(var i=0;i<rules.length;i++){
+      var r = rules[i];
+      if(r && r.match && r.category && d.indexOf(normKey(r.match)) >= 0 && t.cat !== r.category){
+        t.cat = r.category; changed++; break;
+      }
+    }
+  });
+  if(changed){
+    var cats = {};
+    st.txns.forEach(function(t){ if(t.bill<0) cats[t.cat]=(cats[t.cat]||0)+(-t.bill); });
+    st.cats = cats;
+  }
+  return changed;
+}
+
+function renderAiResult(res, st){
+  aiOut.innerHTML = "";
+  if(res.headline) aiOut.appendChild(el("div","ai-verdict", esc(res.headline)));
+
+  if(Array.isArray(res.coaching) && res.coaching.length){
+    aiOut.appendChild(el("div","ai-head","The coaching read"));
+    res.coaching.forEach(function(c){
+      var tone = /^(good|warn|bad|info)$/.test(c.tone) ? c.tone : "info";
+      aiOut.appendChild(aiNote(tone, c.title || "Finding", c.text || ""));
+    });
+  }
+
+  if(Array.isArray(res.plan) && res.plan.length){
+    aiOut.appendChild(el("div","ai-head","Settlement & next-cycle plan"));
+    res.plan.forEach(function(p, i){
+      var d = el("div","note");
+      d.appendChild(el("div","note-t", (i+1) + " · " + esc(String(p))));
+      aiOut.appendChild(d);
+    });
+  }
+
+  if(Array.isArray(res.targets) && res.targets.length){
+    aiOut.appendChild(el("div","ai-head","Next cycle — per-category caps"));
+    var tb = el("table","ait");
+    tb.innerHTML = "<thead><tr><th>Category</th><th class='r'>Cap (QAR)</th></tr></thead>";
+    var body = el("tbody");
+    var sum = 0;
+    res.targets.forEach(function(t){
+      sum += (+t.cap_qar || 0);
+      var tr = el("tr");
+      tr.appendChild(el("td",null, esc(String(t.category))));
+      tr.appendChild(el("td","r", fmt2(+t.cap_qar || 0)));
+      body.appendChild(tr);
+    });
+    var trT = el("tr");
+    trT.appendChild(el("td",null,"Total"));
+    trT.appendChild(el("td","r", fmt2(sum) + (sum > (STORE.envelope||15000) ? " ⚠ over envelope" : "")));
+    body.appendChild(trT);
+    tb.appendChild(body);
+    aiOut.appendChild(tb);
+  }
+
+  var fixed = applyRecat(st, res.recat);
+  if(fixed){
+    aiOut.appendChild(aiNote("good", "Analyst re-filed " + fixed + " transaction" + (fixed>1?"s":""),
+      "Merchant categories corrected — see “Where it went” and the transaction table above."));
+    renderGauges(); renderCurrent(); renderHistory();
+  }
+  persist();
+}
+
+aiGo.onclick = function(){
+  var st = CURRENT;
+  if(!st){ aiOut.innerHTML=""; aiOut.appendChild(aiNote("bad","No statement loaded","Upload a statement PDF first.")); return; }
+  if(!aiKeyIn.value.trim()){ aiOut.innerHTML=""; aiOut.appendChild(aiNote("bad","API key needed","Paste your Kimi API key above (platform.moonshot.ai). It stays in this browser.")); return; }
+  aiGo.disabled = true;
+  aiOut.innerHTML = '<div class="ai-spin">Analysing ' + st.txns.length + ' transactions with Kimi…</div>';
+  aiFetch("/models").then(function(models){
+    var model = pickModel(models);
+    return aiFetch("/chat/completions", {
+      model: model,
+      temperature: 0.3,
+      messages: [
+        { role:"system", content: AI_SYS },
+        { role:"user", content: JSON.stringify(buildAiPayload(st)) }
+      ]
+    });
+  }).then(function(resp){
+    var text = resp && resp.choices && resp.choices[0] && resp.choices[0].message && resp.choices[0].message.content;
+    renderAiResult(extractJson(text), st);
+  }).catch(function(e){
+    aiOut.innerHTML = "";
+    aiOut.appendChild(aiNote("bad", "Analyst call failed", String(e.message || e)));
+  }).then(function(){ aiGo.disabled = false; });
+};
 
 /* ================= boot ================= */
 CURRENT = STORE.statements[STORE.statements.length-1] || null;
