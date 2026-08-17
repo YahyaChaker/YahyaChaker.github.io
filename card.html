@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card Command Center — The Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --paper:#ece4d9; --cream:#f4f0ea; --card:#fffbf5;
+    --ink:#4f483e; --ink-deep:#3a342c; --muted:#8a7d6b;
+    --accent:#f54001; --accent-tint:#ffc198; --rule:#d8cfc0;
+    --good:#3d6b4f; --bad:#a32c00; --warnc:#d9a441;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:14.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+  .masthead{max-width:1160px;margin:0 auto;padding:24px 28px 0}
+  .meta-row{display:flex;justify-content:space-between;align-items:center;gap:14px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--ink);padding-bottom:9px}
+  .meta-row a{color:var(--muted);text-decoration:none}
+  .meta-row a:hover{color:var(--accent)}
+  .nameplate{text-align:center;padding:26px 0 20px;border-bottom:4px double var(--ink)}
+  .nameplate h1{font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(30px,5vw,52px);color:var(--ink-deep);letter-spacing:-.01em}
+  .nameplate .tag{margin-top:10px;font-size:12px;color:var(--muted);letter-spacing:.26em;text-transform:uppercase}
+
+  .wrap{max-width:1160px;margin:32px auto 60px;padding:0 28px}
+
+  .panel{background:var(--cream);border:1px solid var(--ink);padding:20px 22px;margin-bottom:22px}
+  .panel>h2{font-family:'Playfair Display',serif;font-weight:700;font-size:19px;color:var(--ink-deep);border-bottom:1px solid var(--ink);padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline}
+  .panel .hint{font-size:11.5px;color:var(--muted);margin:4px 0 12px}
+
+  .drop{border:2px dashed var(--muted);background:var(--card);padding:26px;text-align:center;cursor:pointer;transition:border-color .15s}
+  .drop:hover,.drop.over{border-color:var(--accent)}
+  .drop .big{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--ink-deep)}
+  .drop .small{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .drop input{display:none}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--ink);border:1px solid var(--ink);margin-bottom:22px}
+  @media(max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--card);padding:13px 15px}
+  .kpi .lab{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .kpi .val{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700;color:var(--ink-deep);margin-top:3px}
+  .kpi .val.hot{color:var(--accent)} .kpi .val.good{color:var(--good)} .kpi .val.bad{color:var(--bad)}
+  .kpi .sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+  /* envelope gauge */
+  .gauge{margin:14px 0 4px}
+  .gauge .track{position:relative;height:34px;border:1px solid var(--ink);background:var(--card);overflow:hidden}
+  .gauge .fill{position:absolute;left:0;top:0;bottom:0;background:var(--good)}
+  .gauge .fill.warn{background:var(--warnc)} .gauge .fill.over{background:var(--bad)}
+  .gauge .cap{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--accent)}
+  .gauge .glabel{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-deep)}
+  .gauge .scale{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px}
+
+  /* phase tracker */
+  .phases{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--ink);border:1px solid var(--ink)}
+  @media(max-width:700px){.phases{grid-template-columns:1fr}}
+  .phase{background:var(--card);padding:13px 15px;opacity:.45}
+  .phase.on{opacity:1;background:var(--cream);box-shadow:inset 0 3px 0 var(--accent)}
+  .phase.done{opacity:.85;box-shadow:inset 0 3px 0 var(--good)}
+  .phase .p-num{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .phase .p-name{font-family:'Playfair Display',serif;font-weight:700;font-size:15.5px;color:var(--ink-deep);margin:2px 0}
+  .phase .p-desc{font-size:11.5px;color:var(--muted)}
+
+  /* category table */
+  table.cats{width:100%;border-collapse:collapse}
+  .cats th{text-align:left;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-top:1.5px solid var(--ink);border-bottom:1px solid var(--ink);padding:6px 8px 6px 0}
+  .cats td{padding:6px 8px 6px 0;border-bottom:1px solid var(--rule);font-family:'JetBrains Mono',monospace;font-size:11.5px;vertical-align:middle}
+  .cats td.r,.cats th.r{text-align:right}
+  .cats tbody tr:last-child td{border-bottom:1.5px solid var(--ink)}
+  .cats .barwrap{width:110px}
+  .cats .bar{height:9px;background:var(--accent-tint)}
+  .cats .bar.big{background:var(--accent)}
+  .delta.up{color:var(--bad)} .delta.down{color:var(--good)} .delta.flat{color:var(--muted)}
+
+  /* notes & anomalies */
+  .note{border-left:3px solid var(--muted);padding:9px 13px;margin-bottom:10px;background:var(--cream);font-size:12.5px}
+  .note .note-t{font-weight:600;font-size:13px;color:var(--ink-deep)}
+  .note .note-x{color:var(--ink);margin-top:1px}
+  .note.bad{border-color:var(--bad)} .note.warn{border-color:var(--warnc)} .note.good{border-color:var(--good)}
+
+  /* transactions */
+  table.tx{width:100%;border-collapse:collapse;font-size:12px}
+  .tx th{text-align:left;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--ink);padding:5px 8px 5px 0}
+  .tx td{padding:4px 8px 4px 0;border-bottom:1px solid var(--rule);font-size:12px}
+  .tx td.r,.tx th.r{text-align:right}
+  .tx td.mono{font-family:'JetBrains Mono',monospace;font-size:11px}
+  .tx .tagc{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border:1px solid var(--rule);color:var(--muted)}
+  .tx tr.neg td{color:var(--muted)}
+
+  /* history */
+  .histitem{display:flex;gap:14px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--rule);cursor:pointer}
+  .histitem:hover .h-d{color:var(--accent)}
+  .histitem .h-d{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700;color:var(--ink-deep);min-width:90px}
+  .histitem .h-t{font-size:12.5px;color:var(--ink)}
+  .histitem .h-v{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+  .histitem .h-v.over{color:var(--bad)} .histitem .h-v.under{color:var(--good)}
+  .histitem .h-x{color:var(--muted);font-size:14px;padding:0 4px}
+  .histitem .h-x:hover{color:var(--bad)}
+
+  .btn{background:none;border:1px solid var(--ink);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:7px 14px;cursor:pointer}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  .rowline{display:flex;gap:14px;flex-wrap:wrap;align-items:end;margin:10px 0}
+  .rowline label{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+  .rowline input{background:var(--card);border:1px solid var(--rule);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:12.5px;padding:6px 8px;outline:none;width:130px}
+  .rowline input:focus{border-color:var(--accent)}
+
+  canvas{width:100%;height:auto;display:block}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+
+  footer{border-top:1px solid var(--ink);background:var(--cream)}
+  .fineprint{max-width:1160px;margin:0 auto;padding:18px 28px 34px;font-size:11px;line-height:1.6;color:var(--muted)}
+  .fineprint b{color:var(--ink)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="meta-row">
+    <span><a href="index.html">← The Ledger</a></span>
+    <span>Card Command Center</span>
+  </div>
+  <div class="nameplate">
+    <h1>The Card Desk</h1>
+    <div class="tag">Statement in on the 6th · settled on the 30th · always backed by cash</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ UPLOAD ============ -->
+  <div class="panel" id="p-upload">
+    <h2>Monthly statement</h2>
+    <div class="hint">Upload the PDF Doha Bank emails you each 6th of the month. It is parsed <b>entirely in this browser</b> — the file never leaves your device.</div>
+    <div class="drop" id="drop">
+      <div class="big">Drop the statement PDF here — or click to choose</div>
+      <div class="small">Doha Bank eStatement · stored on this device only</div>
+      <input type="file" id="file" accept="application/pdf">
+    </div>
+    <div id="parse-err"></div>
+  </div>
+
+  <!-- ============ PHASES ============ -->
+  <div class="panel">
+    <h2>Breaking the cycle — where you stand</h2>
+    <div class="hint">The goal is not "pay the card" — you already do. The goal is that the card can never take you hostage: every rial on it is backed by cash you already hold.</div>
+    <div class="phases" id="phases"></div>
+  </div>
+
+  <!-- ============ ENVELOPE & BACKING ============ -->
+  <div class="grid2">
+    <div class="panel">
+      <h2>The envelope</h2>
+      <div class="hint">Your committed monthly card ceiling. Statements above it are flagged; below it, the surplus builds your backing.</div>
+      <div class="rowline">
+        <div><label>Card envelope / month</label><input type="number" id="envelope" min="0" step="500"></div>
+        <div><label>Cash buffer (from The Ledger)</label><input type="number" id="cashbuf" min="0" step="500"></div>
+      </div>
+      <div class="gauge" id="env-gauge"></div>
+      <div id="env-note"></div>
+    </div>
+    <div class="panel">
+      <h2>Cash-backing meter</h2>
+      <div class="hint">Cash buffer ÷ (current statement + one envelope). 100% means the card is fully backed — the cycle is broken.</div>
+      <div class="gauge" id="back-gauge"></div>
+      <div id="back-note"></div>
+    </div>
+  </div>
+
+  <!-- ============ CURRENT STATEMENT ============ -->
+  <div id="current" class="hidden">
+    <div class="kpis" id="k-kpis"></div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>Where it went</h2>
+        <div class="hint" id="cats-sub"></div>
+        <table class="cats">
+          <thead><tr><th>Category</th><th></th><th class="r">Amount</th><th class="r">% </th><th class="r">vs prev</th></tr></thead>
+          <tbody id="cats-body"></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h2>The desk's flags</h2>
+        <div class="hint">Automated read of this statement — what needs your attention before the 30th.</div>
+        <div id="flags"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Settlement plan <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)" id="settle-sub"></span></h2>
+      <div id="settle"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Every transaction <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)" id="tx-count"></span></h2>
+      <table class="tx">
+        <thead><tr><th>Date</th><th>Merchant</th><th>Category</th><th class="r">Cur</th><th class="r">Amount</th><th class="r">QAR</th></tr></thead>
+        <tbody id="tx-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ HISTORY ============ -->
+  <div class="panel" id="p-hist">
+    <h2>Statement history</h2>
+    <div class="hint">Each 6th, upload the new statement — the trend is the proof that the envelope is working. Click one to review it.</div>
+    <canvas id="hist-chart" width="1060" height="260" class="hidden"></canvas>
+    <div id="hist"></div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="fineprint">
+    <b>Privacy.</b> The PDF is parsed locally in your browser; statements are stored on this device only (localStorage). Nothing is uploaded anywhere.
+    <b>Honesty.</b> Categorisation is keyword-based — skim the transaction table and mentally re-file the odd merchant. Amounts are the bank's own figures from the statement.
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+var LS = "ledger-cards-v1";
+var LS_LEDGER = "ledger-v1";
+
+/* ================= state ================= */
+var STORE = { envelope: 15000, cashbuf: null, statements: [] };
+try{ var s = JSON.parse(localStorage.getItem(LS)); if(s && s.statements) STORE = s; }catch(e){}
+var CURRENT = null;  // statement object being viewed
+
+function persist(){ try{ localStorage.setItem(LS, JSON.stringify(STORE)); }catch(e){} }
+
+/* ================= helpers ================= */
+function el(tag, cls, html){ var e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; }
+function fmt(n){ if(!isFinite(n)) return "—"; var s=n<0?"-":""; n=Math.abs(n);
+  return s + n.toLocaleString("en-US",{maximumFractionDigits:0}) + " QAR"; }
+function fmt2(n){ if(!isFinite(n)) return "—"; var s=n<0?"-":""; n=Math.abs(n);
+  return s + n.toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function dmy(s){ // "06/08/2026" -> Date
+  var p = s.split("/"); return new Date(+p[2], +p[1]-1, +p[0]);
+}
+function fmtDate(s){ return dmy(s).toLocaleDateString("en-GB",{day:"numeric", month:"short", year:"numeric"}); }
+
+/* ================= PDF parser (Doha Bank eStatement) ================= */
+function parseStatementText(pages){ // pages: array of arrays of {x,y,str}
+  var header = {}, txns = [];
+  pages.forEach(function(items, pno){
+    var rows = {};
+    items.forEach(function(it){
+      var key = Math.round(it.y/4);
+      (rows[key] = rows[key] || []).push(it);
+    });
+    Object.keys(rows).map(Number).sort(function(a,b){return b-a;}).forEach(function(key){
+      var ws = rows[key].sort(function(a,b){return a.x-b.x;});
+      var line = ws.map(function(w){return w.str;}).join(" ");
+      if(pno===0 && !header.stmtDate){
+        var m = /(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})\s+(-?[\d,]+\.\d{2})\s*$/.exec(line);
+        var hasCur = ws.some(function(w){ return w.x>390 && /^(QAR|USD|LBP|EUR|GBP)$/.test(w.str); });
+        if(m && !hasCur){
+          header = { stmtDate:m[1], dueDate:m[2], minDue:parseFloat(m[3].replace(/,/g,"")) };
+          return;
+        }
+      }
+      // transaction row: two leading dates at x<70
+      if(ws.length>=2 && /^\d{2}\/\d{2}\/\d{4}$/.test(ws[0].str) && ws[0].x<70
+         && /^\d{2}\/\d{2}\/\d{4}$/.test(ws[1].str)){
+        var nums = ws.slice(2).filter(function(w){ return w.x>=440 && /^-?[\d,]+\.\d{1,2}$/.test(w.str); });
+        if(!nums.length) return;
+        var cur = null;
+        ws.forEach(function(w){ if(w.x>390 && w.x<445 && /^(QAR|USD|LBP|EUR|GBP)$/.test(w.str)) cur=w.str; });
+        var bill = parseFloat(nums[nums.length-1].str.replace(/,/g,""));
+        var amt  = nums.length>1 ? parseFloat(nums[nums.length-2].str.replace(/,/g,"")) : bill;
+        var desc = ws.slice(2).filter(function(w){return w.x<390;}).map(function(w){return w.str;}).join(" ");
+        desc = cleanDesc(desc).replace(/\s*-\s*[\dA-Z]{6,}\s*$/, "").trim();
+        txns.push({ posting:ws[0].str, date:ws[1].str, desc:desc, cur:cur, amt:amt, bill:bill });
+      }
+    });
+  });
+  return { header:header, txns:txns };
+}
+
+function readPdf(file){
+  return file.arrayBuffer().then(function(buf){
+    return pdfjsLib.getDocument({data:buf}).promise;
+  }).then(function(pdf){
+    var pages = [], chain = Promise.resolve();
+    for(var p=1; p<=pdf.numPages; p++){
+      (function(pno){
+        chain = chain.then(function(){
+          return pdf.getPage(pno).then(function(page){
+            return page.getTextContent().then(function(tc){
+              pages[pno-1] = tc.items.map(function(it){
+                return { x: it.transform[4], y: it.transform[5], str: it.str };
+              }).filter(function(it){ return it.str.trim().length; });
+            });
+          });
+        });
+      })(p);
+    }
+    return chain.then(function(){ return pages; });
+  });
+}
+
+/* ================= categorisation ================= */
+var CATS = [
+ ["Cash advance & fees", ["CASH ADVANCE"]],
+ ["Groceries", ["FAMILY FOOD","MONOPRIX","MARKET HALL","SPINNEYS","SUPER MARKET","AL BAYRAK","LOUHOUM","LULU","CARREFOUR","MEGAMART"]],
+ ["Food delivery", ["TALABAT","SNOONU","TOTERS","RAFEEQ","DELIVEROO"]],
+ ["Dining & cafés", ["RESTAURANT","CANDELA","STARBUCKS","JOE & THE JUICE","CHEESECAKE","MC DONALD","CREPAWAY","EDDE SANDS","ATYAB","ALMAFRA","ABAJOUR","ELEGANCIA","SALT HOSPITALITY","AL HARRRIF","ATYB","COFFEE","F AND B","CAFE"]],
+ ["Subscriptions & apps", ["OPENAI","ANTHROPIC","GOOGLE","NETFLIX","MICROSOFT","GITHUB","LINKEDIN","PADDLE","VULTR","N8N","SPOTIFY","APPLE.COM","AMAZON PRIME","YOUTUBE"]],
+ ["Medical & pharmacy", ["HOSPITAL","HOPITAL","PHARMACY","DR SALIM","RESTORE","CLINIC","DENTAL"]],
+ ["Travel & transport", ["TOURS","TRAVEL","DUTY FRE","QDF","UBER","UBR*","AIRPORT","AIRLINES","VALET","KARWA","FUEL","WOQOD"]],
+ ["Utilities, phone & gov", ["KAHRA","OOREDOO","QATAR INSURANCE","MOI ","VODAFONE","METROLINK"]],
+ ["Shopping & retail", ["NEXT","ASICS","STRADIVARIUS","BEAUTY","TEXTILE","LAGOONA","MIKE SPORT","TAHAN","WHOLESOME","CONSTRUST","INTL CONSULT","AURA","MODERN HOME","BARBER","ZARA","H&M","VIRGIN","FNAC"]]
+];
+var SUBS_KW = ["OPENAI","ANTHROPIC","GOOGLE","NETFLIX","MICROSOFT","GITHUB","LINKEDIN","PADDLE","VULTR","N8N","SPOTIFY","TALABAT PRO","APPLE.COM","YOUTUBE"];
+
+// pdf.js emits letter-spaced merchant names as single letters ("J O U R Y T O U R S").
+// Merge runs of single-letter tokens back into words for display.
+function cleanDesc(d){
+  var toks = d.split(/\s+/), out = [], run = [];
+  function flush(){ if(run.length >= 3){ out.push(run.join("")); } else { out = out.concat(run); } run = []; }
+  toks.forEach(function(t){ if(t.length===1 && /[A-Za-z0-9]/.test(t)) run.push(t); else { flush(); out.push(t); } });
+  flush();
+  return out.join(" ").replace(/\s{2,}/g," ").trim();
+}
+// Matching form: uppercase alphanumerics only — immune to letter-spacing and punctuation.
+function normKey(s){ return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,""); }
+var CATS_N = CATS.map(function(c){ return [c[0], c[1].map(normKey)]; });
+var SUBS_N = SUBS_KW.map(normKey);
+
+function categorize(desc){
+  var d = normKey(desc);
+  for(var i=0;i<CATS_N.length;i++)
+    for(var j=0;j<CATS_N[i][1].length;j++)
+      if(d.indexOf(CATS_N[i][1][j])>=0) return CATS_N[i][0];
+  return "Other";
+}
+function isSub(desc){
+  var d = normKey(desc);
+  return SUBS_N.some(function(k){ return d.indexOf(k)>=0; });
+}
+
+/* ================= analysis ================= */
+function analyzeStatement(st){
+  st.txns.forEach(function(t){ t.cat = t.bill>=0 ? "—" : categorize(t.desc); });
+  var cats = {}, spend=0, credits=0;
+  st.txns.forEach(function(t){
+    if(t.bill<0){ spend += -t.bill; cats[t.cat]=(cats[t.cat]||0)+(-t.bill); }
+    else if(t.desc.toUpperCase().indexOf("PAYMENT RECEIVED")<0){ credits += t.bill; }
+  });
+  st.spend = spend; st.credits = credits; st.cats = cats;
+  var pays = st.txns.filter(function(t){ return t.desc.toUpperCase().indexOf("PAYMENT RECEIVED")>=0; });
+  st.payment = pays.reduce(function(a,t){return a+t.bill;},0);
+  st.advances = st.txns.filter(function(t){ return t.cat==="Cash advance & fees"; });
+  st.subs = st.txns.filter(function(t){ return t.bill<0 && isSub(t.desc); });
+  st.foreign = st.txns.filter(function(t){ return t.bill<0 && t.cur && t.cur!=="QAR"; });
+  st.spikes = st.txns.filter(function(t){ return t.bill<=-800 && t.cat!=="Cash advance & fees"; });
+  return st;
+}
+
+/* ================= gauges ================= */
+function renderGauge(id, value, cap, max, labelLeft, labelRight){
+  var g = document.getElementById(id);
+  g.innerHTML = "";
+  var track = el("div","track");
+  var pct = Math.max(0, Math.min(100, value/max*100));
+  var fill = el("div","fill" + (value>cap ? " over" : (value>cap*0.85 ? " warn" : "")));
+  fill.style.width = pct + "%";
+  track.appendChild(fill);
+  var capM = el("div","cap"); capM.style.left = Math.min(100, cap/max*100) + "%";
+  track.appendChild(capM);
+  var gl = el("span","glabel", esc(labelLeft));
+  if(pct > 55){ gl.style.left = "8px"; gl.style.right = "auto"; gl.style.color = "var(--card)"; }
+  track.appendChild(gl);
+  g.appendChild(track);
+  var scale = el("div","scale");
+  scale.appendChild(el("span",null,"0"));
+  scale.appendChild(el("span",null, esc(labelRight)));
+  g.appendChild(scale);
+}
+
+/* ================= phases ================= */
+function phaseOf(){
+  var last = STORE.statements[STORE.statements.length-1];
+  if(!last) return 0;
+  var env = STORE.envelope || 15000;
+  if(last.spend > env) return 1;
+  var cash = currentCash();
+  var need = last.outstanding + env;
+  if(cash!=null && cash >= need) return 3;
+  return 2;
+}
+function renderPhases(){
+  var ph = phaseOf();
+  var defs = [
+    ["Phase 1","Cap","Hold spending to the envelope. The big statements stop growing."],
+    ["Phase 2","Shrink & backfill","Statements land at the envelope; surplus rebuilds the cash backing."],
+    ["Phase 3","Cash-backed","Buffer covers the current statement plus next month's envelope. Card = tool, never lifeline."]
+  ];
+  var box = document.getElementById("phases"); box.innerHTML="";
+  defs.forEach(function(d,i){
+    var cls = "phase" + (ph===i+1 ? " on" : (ph>i+1 ? " done" : ""));
+    var p = el("div",cls);
+    p.appendChild(el("div","p-num", d[0]));
+    p.appendChild(el("div","p-name", d[1]));
+    p.appendChild(el("div","p-desc", d[2]));
+    box.appendChild(p);
+  });
+}
+
+/* ================= cash buffer ================= */
+function currentCash(){
+  if(STORE.cashbuf!=null) return STORE.cashbuf;
+  try{
+    var s = JSON.parse(localStorage.getItem(LS_LEDGER));
+    if(s && s.inv && s.inv.cash!=null) return s.inv.cash;
+  }catch(e){}
+  return null;
+}
+
+/* ================= render current statement ================= */
+function renderCurrent(){
+  var box = document.getElementById("current");
+  if(!CURRENT){ box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  var st = CURRENT, env = STORE.envelope || 15000;
+
+  /* KPIs */
+  var kpis = [
+    ["Statement spend", fmt(st.spend), st.spend>env ? "bad" : "good", "statement of "+fmtDate(st.header.stmtDate)],
+    ["vs envelope", (st.spend>env?"+":"") + fmt2(st.spend-env).replace(" QAR","")+" QAR", st.spend>env ? "hot" : "good", st.spend>env ? "over the cap" : "inside the cap"],
+    ["Payable "+fmtDate(st.header.dueDate), fmt(Math.abs(st.header.minDue || st.spend - st.credits)), "", "auto-debit, 100%"],
+    ["Transactions", String(st.txns.filter(function(t){return t.bill<0;}).length), "", st.foreign.length + " foreign · " + st.subs.length + " subscriptions"]
+  ];
+  var kb = document.getElementById("k-kpis"); kb.innerHTML="";
+  kpis.forEach(function(k){
+    var d = el("div","kpi");
+    d.appendChild(el("div","lab", k[0]));
+    d.appendChild(el("div","val "+k[2], esc(k[1])));
+    d.appendChild(el("div","sub", esc(k[3])));
+    kb.appendChild(d);
+  });
+
+  /* categories */
+  var prev = STORE.statements.length>1 ? STORE.statements[STORE.statements.length-2] : null;
+  document.getElementById("cats-sub").textContent =
+    "Statement covers " + fmtDate(st.header.stmtDate) + " · " + st.txns.length + " lines · refunds " + fmt2(st.credits) + " QAR";
+  var tb = document.getElementById("cats-body"); tb.innerHTML="";
+  var maxCat = Math.max.apply(null, Object.keys(st.cats).map(function(k){return st.cats[k];}).concat([1]));
+  Object.keys(st.cats).sort(function(a,b){return st.cats[b]-st.cats[a];}).forEach(function(c){
+    var tr = el("tr");
+    tr.appendChild(el("td",null,esc(c)));
+    var bw = el("td","barwrap");
+    var bar = el("div","bar"+(st.cats[c]/maxCat>0.66?" big":""));
+    bar.style.width = Math.max(2, st.cats[c]/maxCat*100)+"%";
+    bw.appendChild(bar); tr.appendChild(bw);
+    tr.appendChild(el("td","r", fmt2(st.cats[c])));
+    tr.appendChild(el("td","r", (st.cats[c]/st.spend*100).toFixed(0)+"%"));
+    var dcell;
+    if(prev && prev.cats && prev.cats[c]!=null){
+      var d = st.cats[c]-prev.cats[c];
+      dcell = el("td","r delta "+(Math.abs(d)<1?"flat":(d>0?"up":"down")),
+        (d>0?"+":d<0?"−":"±") + Math.abs(d).toLocaleString("en-US",{maximumFractionDigits:0}));
+    } else dcell = el("td","r delta flat","—");
+    tr.appendChild(dcell);
+    tb.appendChild(tr);
+  });
+
+  renderFlags(st);
+  renderSettle(st);
+  renderTxTable(st);
+}
+
+/* ================= flags ================= */
+function renderFlags(st){
+  var F = document.getElementById("flags"); F.innerHTML="";
+  var env = STORE.envelope || 15000;
+  function note(tone, t, x){
+    var d = el("div","note "+tone);
+    d.appendChild(el("div","note-t", t));
+    if(x) d.appendChild(el("div","note-x", x));
+    F.appendChild(d);
+  }
+
+  if(st.advances.length){
+    var adv = st.advances.reduce(function(a,t){return a+(-t.bill);},0);
+    note("bad", "Cash advance: " + fmt2(adv) + " QAR",
+      "Cash advances skip the grace period — the fee and interest start day one. This statement's " +
+      fmt2(adv) + " QAR cost you a fee on the spot. Rule: the card is never an ATM. If cash is short, that is a budget signal, not an ATM signal.");
+  }
+  if(st.spend > env){
+    note("bad", "Over the envelope by " + fmt2(st.spend-env) + " QAR",
+      "The cap is " + fmt(env) + ". Scan the categories on the left — the overage is usually one-off spikes, not daily life. Next month's target: every spike either pre-funded from a sinking fund, or declined.");
+  } else {
+    note("good", "Inside the envelope — " + fmt2(env-st.spend) + " QAR of headroom",
+      "This is what the shrink phase looks like. The surplus stays in the buffer and the backing meter climbs.");
+  }
+
+  /* subscription stack */
+  if(st.subs.length){
+    var subTot = st.subs.reduce(function(a,t){return a+(-t.bill);},0);
+    var byName = {};
+    st.subs.forEach(function(t){
+      var k = t.desc.split(",")[0].replace(/\s+/g," ").trim().toUpperCase().slice(0,28);
+      (byName[k]=byName[k]||[]).push(-t.bill);
+    });
+    var dups = Object.keys(byName).filter(function(k){ return byName[k].length>1; });
+    var x = st.subs.length + " subscription charges totalling " + fmt2(subTot) + " QAR this cycle (~" +
+      fmt2(subTot*12) + " QAR/year).";
+    if(dups.length) x += " Billed more than once: " + dups.join(", ") + " — check for duplicates or weekly billing.";
+    note(dups.length ? "warn" : "info", "Subscription stack: " + fmt2(subTot) + " QAR/month", x);
+  }
+
+  if(st.foreign.length){
+    var fx = st.foreign.reduce(function(a,t){return a+(-t.bill);},0);
+    note("warn", "Foreign spend: " + fmt2(fx) + " QAR (" + st.foreign.length + " txns)",
+      "Non-QAR spending carries conversion spread and, on some cards, a foreign-transaction fee. Travel belongs in a pre-funded sinking fund — next trip, the money exists before the boarding pass.");
+  }
+
+  if(st.spikes.length){
+    var top = st.spikes.slice().sort(function(a,b){return a.bill-b.bill;}).slice(0,3);
+    note("warn", "Large one-offs this cycle",
+      top.map(function(t){ return t.desc.split(",")[0].trim() + " — " + fmt2(-t.bill) + " QAR (" + t.date + ")"; }).join(" · ") +
+      ". Big items are fine when planned; they are cycle-breakers when they surprise the statement.");
+  }
+}
+
+/* ================= settlement ================= */
+function renderSettle(st){
+  var S = document.getElementById("settle"); S.innerHTML="";
+  document.getElementById("settle-sub").textContent = "due " + fmtDate(st.header.dueDate);
+  var payable = Math.abs(st.header.minDue || (st.spend - st.credits));
+  var cash = currentCash();
+  var env = STORE.envelope || 15000;
+
+  var steps = [
+    ["1", "On " + fmtDate(st.header.dueDate) + " the bank auto-debits " + fmt(payable) + " — 100% of the statement. Your salary (1st–5th) must still be sitting there. Do not spend against it; it is already gone."],
+    ["2", "From the 7th, the new cycle opens. Everything you put on the card counts toward the " + fmt(env) + " envelope. Watch the running total in your banking app weekly — not at statement time."],
+    ["3", "No cash advances, no new instalment plans. Exceptions are pre-funded purchases where the cash is already in the buffer."]
+  ];
+  if(cash!=null){
+    var need = payable + env;
+    if(cash >= need){
+      steps.push(["✓", "Cash-backing: your buffer (" + fmt(cash) + ") covers this statement plus a full envelope (" + fmt(need) + "). The cycle is broken — keep it green."]);
+    } else {
+      steps.push(["…", "Cash-backing: buffer " + fmt(cash) + " vs needed " + fmt(need) + " (statement + one envelope). Gap: " + fmt(need-cash) + ". Every month inside the envelope closes it."]);
+    }
+  } else {
+    steps.push(["…", "Set your cash buffer above (or fill it in The Ledger) so the backing meter can run."]);
+  }
+  steps.forEach(function(s){
+    var d = el("div","note"+(s[0]==="✓"?" good":""));
+    d.appendChild(el("div","note-t", s[0] + " · " + esc(s[1])));
+    S.appendChild(d);
+  });
+}
+
+/* ================= transaction table ================= */
+function renderTxTable(st){
+  var tb = document.getElementById("tx-body"); tb.innerHTML="";
+  document.getElementById("tx-count").textContent = st.txns.length + " lines · " + fmtDate(st.header.stmtDate);
+  st.txns.forEach(function(t){
+    var tr = el("tr"); if(t.bill>=0) tr.className="neg";
+    tr.appendChild(el("td","mono", t.date));
+    tr.appendChild(el("td",null, esc(t.desc || "—")));
+    tr.appendChild(el("td",null, '<span class="tagc">'+esc(t.cat)+"</span>"));
+    tr.appendChild(el("td","r mono", t.cur||""));
+    tr.appendChild(el("td","r mono", t.cur && t.cur!=="QAR" ? t.amt.toLocaleString("en-US",{maximumFractionDigits:2}) : ""));
+    tr.appendChild(el("td","r mono", fmt2(t.bill)));
+    tb.appendChild(tr);
+  });
+}
+
+/* ================= history ================= */
+function renderHistory(){
+  var H = document.getElementById("hist"); H.innerHTML="";
+  var env = STORE.envelope || 15000;
+  var cv = document.getElementById("hist-chart");
+
+  if(!STORE.statements.length){
+    H.appendChild(el("div","hint","No statements yet — upload the first one above."));
+    cv.classList.add("hidden");
+    return;
+  }
+
+  /* chart */
+  if(STORE.statements.length >= 1){
+    cv.classList.remove("hidden");
+    var ctx = cv.getContext("2d");
+    var W=cv.width, Hh=cv.height;
+    ctx.clearRect(0,0,W,Hh);
+    var sts = STORE.statements;
+    var maxV = Math.max.apply(null, sts.map(function(s){return s.spend;}).concat([env]))*1.15;
+    var padL=70, padR=14, padT=14, padB=30;
+    var bw = (W-padL-padR)/sts.length;
+    ctx.font="11px 'JetBrains Mono', monospace";
+    /* envelope line */
+    var yE = padT + (Hh-padT-padB)*(1 - env/maxV);
+    ctx.strokeStyle="#f54001"; ctx.setLineDash([4,4]); ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(padL,yE); ctx.lineTo(W-padR,yE); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle="#f54001"; ctx.textAlign="right";
+    ctx.fillText("ENVELOPE "+Math.round(env/1000)+"k", W-padR-6, yE-6);
+    /* gridlines */
+    ctx.strokeStyle="#d8cfc0"; ctx.fillStyle="#8a7d6b"; ctx.lineWidth=1;
+    for(var g=0; g<=4; g++){
+      var v=maxV*g/4, y=padT+(Hh-padT-padB)*(1-v/maxV);
+      ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+      ctx.textAlign="right"; ctx.fillText(Math.round(v/1000)+"k", padL-8, y+4);
+    }
+    sts.forEach(function(s,i){
+      var x = padL + bw*i + bw*0.18, w = bw*0.64;
+      var h = (Hh-padT-padB)*(s.spend/maxV);
+      var y = padT + (Hh-padT-padB) - h;
+      ctx.fillStyle = s.spend>env ? "#a32c00" : "#3d6b4f";
+      ctx.fillRect(x,y,w,h);
+      ctx.fillStyle="#4f483e"; ctx.textAlign="center";
+      var lbl = s.header.stmtDate.slice(3,5)+"/"+s.header.stmtDate.slice(8);
+      ctx.fillText(lbl, x+w/2, Hh-padB+16);
+      ctx.fillText(Math.round(s.spend/1000)+"k", x+w/2, y-6);
+    });
+  }
+
+  /* list (newest first) */
+  STORE.statements.slice().reverse().forEach(function(s){
+    var idx = STORE.statements.indexOf(s);
+    var d = el("div","histitem");
+    d.appendChild(el("span","h-d", fmtDate(s.header.stmtDate)));
+    d.appendChild(el("span","h-t", s.txns.length + " transactions · payable " + fmt2(Math.abs(s.header.minDue || s.spend)) + " QAR"));
+    var over = s.spend > env;
+    d.appendChild(el("span","h-v "+(over?"over":"under"), fmt2(s.spend) + " QAR " + (over?"▲ over":"✓ in")));
+    var x = el("span","h-x","×"); x.title="Remove this statement";
+    x.onclick = function(ev){
+      ev.stopPropagation();
+      if(!confirm("Remove the statement of "+fmtDate(s.header.stmtDate)+"?")) return;
+      STORE.statements.splice(idx,1); persist();
+      if(CURRENT===s) CURRENT = STORE.statements[STORE.statements.length-1] || null;
+      renderAll();
+    };
+    d.appendChild(x);
+    d.onclick = function(){ CURRENT = s; renderAll(); window.scrollTo({top:0, behavior:"smooth"}); };
+    H.appendChild(d);
+  });
+}
+
+/* ================= envelope / backing panels ================= */
+function renderGauges(){
+  var env = STORE.envelope || 15000;
+  var last = CURRENT || STORE.statements[STORE.statements.length-1];
+
+  /* envelope gauge */
+  if(last){
+    var maxE = Math.max(last.spend, env)*1.15;
+    renderGauge("env-gauge", last.spend, env, maxE,
+      fmt2(last.spend)+" of "+fmt2(env),
+      "statement " + fmtDate(last.header.stmtDate));
+    document.getElementById("env-note").innerHTML =
+      '<div class="note '+(last.spend>env?"bad":"good")+'"><div class="note-t">'+
+      (last.spend>env
+        ? "Over by "+fmt2(last.spend-env)+" QAR — the cap only works if it bites."
+        : "Inside the cap by "+fmt2(env-last.spend)+" QAR — that headroom is tomorrow's buffer.")+
+      "</div></div>";
+  } else {
+    document.getElementById("env-gauge").innerHTML = '<div class="hint">Upload a statement to activate.</div>';
+    document.getElementById("env-note").innerHTML = "";
+  }
+
+  /* backing gauge */
+  var cash = currentCash();
+  if(last && cash!=null){
+    var need = Math.abs(last.header.minDue || last.spend) + env;
+    var ratio = need>0 ? cash/need : 1;
+    renderGauge("back-gauge", cash, need, Math.max(need, cash)*1.1,
+      fmt2(cash)+" of "+fmt2(need), (ratio*100).toFixed(0)+"% backed");
+    document.getElementById("back-note").innerHTML =
+      '<div class="note '+(ratio>=1?"good":"warn")+'"><div class="note-t">'+
+      (ratio>=1
+        ? "Fully backed. The card now works for you — float, points, protection — and can never take you hostage."
+        : "Gap to full backing: "+fmt2(need-cash)+" QAR. Each inside-envelope month closes it by the surplus.")+
+      "</div></div>";
+  } else {
+    document.getElementById("back-gauge").innerHTML = '<div class="hint">'+(cash==null?"Enter your cash buffer above.":"Upload a statement to activate.")+"</div>";
+    document.getElementById("back-note").innerHTML = "";
+  }
+}
+
+function renderAll(){
+  renderPhases(); renderGauges(); renderCurrent(); renderHistory();
+}
+
+/* ================= upload wiring ================= */
+function handleFile(file){
+  if(!file) return;
+  var err = document.getElementById("parse-err"); err.innerHTML="";
+  var dropEl = document.getElementById("drop");
+  dropEl.querySelector(".big").textContent = "Reading " + file.name + "…";
+  readPdf(file).then(function(pages){
+    var parsed = parseStatementText(pages);
+    if(!parsed.header.stmtDate || !parsed.txns.length)
+      throw new Error("Could not find a statement header and transactions in this PDF — is it the Doha Bank eStatement?");
+    var st = analyzeStatement({ header: parsed.header, txns: parsed.txns });
+    /* upsert by statement date */
+    var existing = -1;
+    STORE.statements.forEach(function(s,i){ if(s.header.stmtDate===st.header.stmtDate) existing=i; });
+    if(existing>=0) STORE.statements[existing]=st; else STORE.statements.push(st);
+    STORE.statements.sort(function(a,b){ return dmy(a.header.stmtDate)-dmy(b.header.stmtDate); });
+    persist();
+    CURRENT = st;
+    dropEl.querySelector(".big").textContent = "Drop the statement PDF here — or click to choose";
+    renderAll();
+  }).catch(function(e){
+    dropEl.querySelector(".big").textContent = "Drop the statement PDF here — or click to choose";
+    err.innerHTML = '<div class="note bad"><div class="note-t">Parse failed</div><div class="note-x">'+esc(String(e.message||e))+"</div></div>";
+  });
+}
+
+var drop = document.getElementById("drop"), fileIn = document.getElementById("file");
+drop.onclick = function(){ fileIn.click(); };
+fileIn.onchange = function(){ handleFile(fileIn.files[0]); fileIn.value=""; };
+drop.ondragover = function(e){ e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = function(){ drop.classList.remove("over"); };
+drop.ondrop = function(e){ e.preventDefault(); drop.classList.remove("over"); handleFile(e.dataTransfer.files[0]); };
+
+/* ================= inputs ================= */
+var envIn = document.getElementById("envelope"), cashIn = document.getElementById("cashbuf");
+envIn.value = STORE.envelope || 15000;
+var cc = currentCash();
+if(cc!=null) cashIn.value = cc;
+envIn.addEventListener("input", function(){ STORE.envelope = parseFloat(envIn.value)||0; persist(); renderAll(); });
+cashIn.addEventListener("input", function(){ STORE.cashbuf = cashIn.value===""?null:(parseFloat(cashIn.value)||0); persist(); renderAll(); });
+
+/* ================= boot ================= */
+CURRENT = STORE.statements[STORE.statements.length-1] || null;
+renderAll();
+})();
+</script>
+
+</body>
+</html>
