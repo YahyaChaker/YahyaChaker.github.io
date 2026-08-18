@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="cloud.js"></script>
 <style>
   :root{
     --paper:#ece4d9; --cream:#f4f0ea; --card:#fffbf5;
@@ -29,8 +30,21 @@
   .wrap{max-width:1160px;margin:32px auto 60px;padding:0 28px}
 
   .panel{background:var(--cream);border:1px solid var(--ink);padding:20px 22px;margin-bottom:22px}
-  .panel>h2{font-family:'Playfair Display',serif;font-weight:700;font-size:19px;color:var(--ink-deep);border-bottom:1px solid var(--ink);padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline}
+  .panel>h2{font-family:'Playfair Display',serif;font-weight:700;font-size:19px;color:var(--ink-deep);border-bottom:1px solid var(--ink);padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
   .panel .hint{font-size:11.5px;color:var(--muted);margin:4px 0 12px}
+
+  /* card switcher */
+  .cardchips{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .cardchip{border:1px solid var(--ink);background:var(--card);padding:10px 16px;cursor:pointer;min-width:180px}
+  .cardchip .cc-name{font-family:'Playfair Display',serif;font-weight:700;font-size:14.5px;color:var(--ink-deep)}
+  .cardchip .cc-sub{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+  .cardchip.on{background:var(--ink-deep);color:var(--card)}
+  .cardchip.on .cc-name{color:var(--card)}
+  .cardchip.on .cc-sub{color:var(--rule)}
+  .cardchip.add{border-style:dashed;color:var(--muted);min-width:0;font-family:'JetBrains Mono',monospace;font-size:11px}
+  .cardchip.add:hover{border-color:var(--accent);color:var(--accent)}
+  .addcard{display:none;margin-top:12px;border-top:1px solid var(--rule);padding-top:12px}
+  .addcard.open{display:block}
 
   .drop{border:2px dashed var(--muted);background:var(--card);padding:26px;text-align:center;cursor:pointer;transition:border-color .15s}
   .drop:hover,.drop.over{border-color:var(--accent)}
@@ -100,6 +114,9 @@
   .histitem .h-v.over{color:var(--bad)} .histitem .h-v.under{color:var(--good)}
   .histitem .h-x{color:var(--muted);font-size:14px;padding:0 4px}
   .histitem .h-x:hover{color:var(--bad)}
+  .histitem .h-pdf{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--rule);padding:2px 7px;text-decoration:none}
+  .histitem .h-pdf:hover{color:var(--accent);border-color:var(--accent)}
+  .cloudflag{color:var(--good);font-size:11px}
 
   .btn{background:none;border:1px solid var(--ink);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:7px 14px;cursor:pointer}
   .btn:hover{border-color:var(--accent);color:var(--accent)}
@@ -107,8 +124,9 @@
 
   .rowline{display:flex;gap:14px;flex-wrap:wrap;align-items:end;margin:10px 0}
   .rowline label{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
-  .rowline input{background:var(--card);border:1px solid var(--rule);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:12.5px;padding:6px 8px;outline:none;width:130px}
-  .rowline input:focus{border-color:var(--accent)}
+  .rowline input,.rowline select{background:var(--card);border:1px solid var(--rule);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:12.5px;padding:6px 8px;outline:none}
+  .rowline input{width:130px}
+  .rowline input:focus,.rowline select:focus{border-color:var(--accent)}
 
   /* AI analyst */
   .ai-badge{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);padding:2px 8px}
@@ -136,6 +154,7 @@
   <div class="meta-row">
     <span><a href="index.html">← The Ledger</a></span>
     <span>Card Command Center</span>
+    <span><a href="daybook.html">The Day Book →</a></span>
   </div>
   <div class="nameplate">
     <h1>The Card Desk</h1>
@@ -143,17 +162,37 @@
   </div>
 </header>
 
+<div id="cloudbar"></div>
+
 <div class="wrap">
+
+  <!-- ============ CARDS ============ -->
+  <div class="panel" id="p-cards">
+    <h2>Your cards</h2>
+    <div class="hint">Each card keeps its own envelope, statement history and archive. Add a supplementary card — a card linked to your account — the same way.</div>
+    <div class="cardchips" id="cardchips"></div>
+    <div class="addcard" id="addcard">
+      <div class="rowline">
+        <div><label>Card name</label><input id="nc-name" placeholder="e.g. Doha Bank Visa" style="width:180px"></div>
+        <div><label>Last 4</label><input id="nc-last4" maxlength="4" placeholder="7447" style="width:70px"></div>
+        <div><label>Whose</label><select id="nc-owner"><option value="you">Mine</option><option value="wife">Wife's</option><option value="other">Other</option></select></div>
+        <div><label>Limit</label><input id="nc-limit" type="number" min="0" step="1000" placeholder="55000"></div>
+        <div><label>Envelope / month</label><input id="nc-env" type="number" min="0" step="500" placeholder="15000"></div>
+        <div><button class="btn primary" id="nc-add">Add card</button></div>
+      </div>
+    </div>
+  </div>
 
   <!-- ============ UPLOAD ============ -->
   <div class="panel" id="p-upload">
-    <h2>Monthly statement</h2>
-    <div class="hint">Upload the PDF Doha Bank emails you each 6th of the month. It is parsed <b>entirely in this browser</b> — the file never leaves your device.</div>
+    <h2>Monthly statement <span id="up-for" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)"></span></h2>
+    <div class="hint">Upload the PDF Doha Bank emails you each 6th of the month. It is parsed <b>entirely in this browser</b> — the file itself never leaves your device unless you archive it below.</div>
     <div class="drop" id="drop">
       <div class="big">Drop the statement PDF here — or click to choose</div>
-      <div class="small">Doha Bank eStatement · stored on this device only</div>
+      <div class="small">Doha Bank card eStatement</div>
       <input type="file" id="file" accept="application/pdf">
     </div>
+    <label style="display:block;margin-top:8px;font-size:11.5px;color:var(--ink)"><input type="checkbox" id="up-arch" checked style="margin-right:6px">Save statements to my cloud archive — viewable anytime, any device (includes the original PDF)</label>
     <div id="parse-err"></div>
   </div>
 
@@ -168,7 +207,7 @@
   <div class="grid2">
     <div class="panel">
       <h2>The envelope</h2>
-      <div class="hint">Your committed monthly card ceiling. Statements above it are flagged; below it, the surplus builds your backing.</div>
+      <div class="hint">This card's committed monthly ceiling. Statements above it are flagged; below it, the surplus builds your backing.</div>
       <div class="rowline">
         <div><label>Card envelope / month</label><input type="number" id="envelope" min="0" step="500"></div>
         <div><label>Cash buffer (from The Ledger)</label><input type="number" id="cashbuf" min="0" step="500"></div>
@@ -178,7 +217,7 @@
     </div>
     <div class="panel">
       <h2>Cash-backing meter</h2>
-      <div class="hint">Cash buffer ÷ (current statement + one envelope). 100% means the card is fully backed — the cycle is broken.</div>
+      <div class="hint">Cash buffer ÷ (all cards' current statements + one envelope each). 100% means no card can take you hostage.</div>
       <div class="gauge" id="back-gauge"></div>
       <div id="back-note"></div>
     </div>
@@ -194,10 +233,7 @@
       <div class="hint">Sends this statement's transactions (merchant, date, amount) to the Moonshot/Kimi API using <b>your own API key</b>. The key is stored only in this browser and is sent nowhere else; the PDF itself never leaves your device. One analysis ≈ a few thousand tokens on your own Kimi account.</div>
       <div class="rowline">
         <div><label>Kimi API key (platform.moonshot.ai)</label><input type="password" id="ai-key" placeholder="sk-…" autocomplete="off" style="width:280px"></div>
-        <div><label>Platform</label><select id="ai-base" style="background:var(--card);border:1px solid var(--rule);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:12px;padding:6px 8px;outline:none">
-          <option value="https://api.moonshot.ai/v1" selected>moonshot.ai — international</option>
-          <option value="https://api.moonshot.cn/v1">moonshot.cn — China</option>
-        </select></div>
+        <div><label>Platform</label><select id="ai-base"><option value="https://api.moonshot.ai/v1" selected>moonshot.ai — international</option><option value="https://api.moonshot.cn/v1">moonshot.cn — China</option></select></div>
         <div><button class="btn primary" id="ai-go" style="padding:8px 18px">Ask the analyst — full read of this statement</button></div>
       </div>
       <div id="ai-out"></div>
@@ -235,8 +271,8 @@
 
   <!-- ============ HISTORY ============ -->
   <div class="panel" id="p-hist">
-    <h2>Statement history</h2>
-    <div class="hint">Each 6th, upload the new statement — the trend is the proof that the envelope is working. Click one to review it.</div>
+    <h2>Statement history <span id="hist-for" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)"></span></h2>
+    <div class="hint">Each 6th, upload the new statement — the trend is the proof that the envelope is working. <span class="cloudflag">☁</span> = in your cloud archive, viewable from any device. Click one to review it.</div>
     <canvas id="hist-chart" width="1060" height="260" class="hidden"></canvas>
     <div id="hist"></div>
   </div>
@@ -245,7 +281,7 @@
 
 <footer>
   <div class="fineprint">
-    <b>Privacy.</b> The PDF is parsed locally in your browser; statements are stored on this device only (localStorage). Nothing is uploaded anywhere.
+    <b>Privacy.</b> The PDF is parsed locally in your browser. Signed in, statements you archive sync to your own private cloud account — readable only by you, protected by row-level security. Signed out, everything stays on this device.
     <b>Honesty.</b> Categorisation is keyword-based — skim the transaction table and mentally re-file the odd merchant. Amounts are the bank's own figures from the statement.
   </div>
 </footer>
@@ -255,15 +291,52 @@
 "use strict";
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-var LS = "ledger-cards-v1";
+var LS = "ledger-cards-v2";
+var LS_V1 = "ledger-cards-v1";
 var LS_LEDGER = "ledger-v1";
 
 /* ================= state ================= */
-var STORE = { envelope: 15000, cashbuf: null, statements: [] };
-try{ var s = JSON.parse(localStorage.getItem(LS)); if(s && s.statements) STORE = s; }catch(e){}
-var CURRENT = null;  // statement object being viewed
+var STORE = { cards: [], activeId: null, by: {}, cashbuf: null };
+try{ var s = JSON.parse(localStorage.getItem(LS)); if(s && s.cards) STORE = s; }catch(e){}
 
-function persist(){ try{ localStorage.setItem(LS, JSON.stringify(STORE)); }catch(e){} }
+/* migrate v1 (single-card) store */
+if(!STORE.cards.length){
+  try{
+    var v1 = JSON.parse(localStorage.getItem(LS_V1));
+    if(v1 && v1.statements && v1.statements.length){
+      var cid = "c_doha";
+      STORE.cards = [{ id: cid, name: "Doha Bank card", last4: "", owner: "you", limit: 55000, envelope: v1.envelope || 15000 }];
+      STORE.activeId = cid;
+      STORE.by[cid] = { statements: v1.statements };
+      STORE.cashbuf = v1.cashbuf != null ? v1.cashbuf : null;
+    }
+  }catch(e){}
+}
+var CURRENT = null;
+
+function ACT(){ return STORE.cards.filter(function(c){ return c.id===STORE.activeId; })[0] || null; }
+function STMTS(){
+  if(!STORE.activeId) return [];
+  if(!STORE.by[STORE.activeId]) STORE.by[STORE.activeId] = { statements: [] };
+  return STORE.by[STORE.activeId].statements;
+}
+function ENV(){ var c = ACT(); return (c && c.envelope) || 15000; }
+function stmtRef(st){ return STORE.activeId + ":" + st.header.stmtDate.slice(6) + st.header.stmtDate.slice(3,5) + st.header.stmtDate.slice(0,2); }
+
+function persist(){
+  try{ localStorage.setItem(LS, JSON.stringify(STORE)); }catch(e){}
+  syncRegistry();
+}
+var regTimer = null;
+function syncRegistry(){
+  if(!LedgerCloud.user()) return;
+  clearTimeout(regTimer);
+  regTimer = setTimeout(function(){
+    LedgerCloud.putDoc("cards","default",{ cards: STORE.cards })
+      .then(function(){ LedgerCloud.note("Saved to cloud ✓ " + new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})); })
+      .catch(function(e){ LedgerCloud.note("Offline — saved locally", String(e.message||e)); });
+  }, 700);
+}
 
 /* ================= helpers ================= */
 function el(tag, cls, html){ var e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; }
@@ -272,13 +345,11 @@ function fmt(n){ if(!isFinite(n)) return "—"; var s=n<0?"-":""; n=Math.abs(n);
 function fmt2(n){ if(!isFinite(n)) return "—"; var s=n<0?"-":""; n=Math.abs(n);
   return s + n.toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2}); }
 function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
-function dmy(s){ // "06/08/2026" -> Date
-  var p = s.split("/"); return new Date(+p[2], +p[1]-1, +p[0]);
-}
+function dmy(s){ var p = s.split("/"); return new Date(+p[2], +p[1]-1, +p[0]); }
 function fmtDate(s){ return dmy(s).toLocaleDateString("en-GB",{day:"numeric", month:"short", year:"numeric"}); }
 
-/* ================= PDF parser (Doha Bank eStatement) ================= */
-function parseStatementText(pages){ // pages: array of arrays of {x,y,str}
+/* ================= PDF parser (Doha Bank card eStatement) ================= */
+function parseStatementText(pages){
   var header = {}, txns = [];
   pages.forEach(function(items, pno){
     var rows = {};
@@ -297,7 +368,6 @@ function parseStatementText(pages){ // pages: array of arrays of {x,y,str}
           return;
         }
       }
-      // transaction row: two leading dates at x<70
       if(ws.length>=2 && /^\d{2}\/\d{2}\/\d{4}$/.test(ws[0].str) && ws[0].x<70
          && /^\d{2}\/\d{2}\/\d{4}$/.test(ws[1].str)){
         var nums = ws.slice(2).filter(function(w){ return w.x>=440 && /^-?[\d,]+\.\d{1,2}$/.test(w.str); });
@@ -351,8 +421,6 @@ var CATS = [
 ];
 var SUBS_KW = ["OPENAI","ANTHROPIC","GOOGLE","NETFLIX","MICROSOFT","GITHUB","LINKEDIN","PADDLE","VULTR","N8N","SPOTIFY","TALABAT PRO","APPLE.COM","YOUTUBE"];
 
-// pdf.js emits letter-spaced merchant names as single letters ("J O U R Y T O U R S").
-// Merge runs of single-letter tokens back into words for display.
 function cleanDesc(d){
   var toks = d.split(/\s+/), out = [], run = [];
   function flush(){ if(run.length >= 3){ out.push(run.join("")); } else { out = out.concat(run); } run = []; }
@@ -360,7 +428,6 @@ function cleanDesc(d){
   flush();
   return out.join(" ").replace(/\s{2,}/g," ").trim();
 }
-// Matching form: uppercase alphanumerics only — immune to letter-spacing and punctuation.
 function normKey(s){ return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,""); }
 var CATS_N = CATS.map(function(c){ return [c[0], c[1].map(normKey)]; });
 var SUBS_N = SUBS_KW.map(normKey);
@@ -417,13 +484,15 @@ function renderGauge(id, value, cap, max, labelLeft, labelRight){
 }
 
 /* ================= phases ================= */
+function payableOf(st){ return Math.abs(st.header.minDue || (st.spend - st.credits)); }
 function phaseOf(){
-  var last = STORE.statements[STORE.statements.length-1];
+  var stmts = STMTS();
+  var last = stmts[stmts.length-1];
   if(!last) return 0;
-  var env = STORE.envelope || 15000;
+  var env = ENV();
   if(last.spend > env) return 1;
   var cash = currentCash();
-  var need = last.outstanding + env;
+  var need = payableOf(last) + env;
   if(cash!=null && cash >= need) return 3;
   return 2;
 }
@@ -460,13 +529,12 @@ function renderCurrent(){
   var box = document.getElementById("current");
   if(!CURRENT){ box.classList.add("hidden"); return; }
   box.classList.remove("hidden");
-  var st = CURRENT, env = STORE.envelope || 15000;
+  var st = CURRENT, env = ENV();
 
-  /* KPIs */
   var kpis = [
     ["Statement spend", fmt(st.spend), st.spend>env ? "bad" : "good", "statement of "+fmtDate(st.header.stmtDate)],
     ["vs envelope", (st.spend>env?"+":"") + fmt2(st.spend-env).replace(" QAR","")+" QAR", st.spend>env ? "hot" : "good", st.spend>env ? "over the cap" : "inside the cap"],
-    ["Payable "+fmtDate(st.header.dueDate), fmt(Math.abs(st.header.minDue || st.spend - st.credits)), "", "auto-debit, 100%"],
+    ["Payable "+fmtDate(st.header.dueDate), fmt(payableOf(st)), "", "auto-debit, 100%"],
     ["Transactions", String(st.txns.filter(function(t){return t.bill<0;}).length), "", st.foreign.length + " foreign · " + st.subs.length + " subscriptions"]
   ];
   var kb = document.getElementById("k-kpis"); kb.innerHTML="";
@@ -478,8 +546,8 @@ function renderCurrent(){
     kb.appendChild(d);
   });
 
-  /* categories */
-  var prev = STORE.statements.length>1 ? STORE.statements[STORE.statements.length-2] : null;
+  var stmts = STMTS();
+  var prev = stmts.length>1 ? stmts[stmts.length-2] : null;
   document.getElementById("cats-sub").textContent =
     "Statement covers " + fmtDate(st.header.stmtDate) + " · " + st.txns.length + " lines · refunds " + fmt2(st.credits) + " QAR";
   var tb = document.getElementById("cats-body"); tb.innerHTML="";
@@ -511,7 +579,7 @@ function renderCurrent(){
 /* ================= flags ================= */
 function renderFlags(st){
   var F = document.getElementById("flags"); F.innerHTML="";
-  var env = STORE.envelope || 15000;
+  var env = ENV();
   function note(tone, t, x){
     var d = el("div","note "+tone);
     d.appendChild(el("div","note-t", t));
@@ -533,7 +601,6 @@ function renderFlags(st){
       "This is what the shrink phase looks like. The surplus stays in the buffer and the backing meter climbs.");
   }
 
-  /* subscription stack */
   if(st.subs.length){
     var subTot = st.subs.reduce(function(a,t){return a+(-t.bill);},0);
     var byName = {};
@@ -566,21 +633,21 @@ function renderFlags(st){
 function renderSettle(st){
   var S = document.getElementById("settle"); S.innerHTML="";
   document.getElementById("settle-sub").textContent = "due " + fmtDate(st.header.dueDate);
-  var payable = Math.abs(st.header.minDue || (st.spend - st.credits));
+  var payable = payableOf(st);
   var cash = currentCash();
-  var env = STORE.envelope || 15000;
+  var env = ENV();
 
   var steps = [
-    ["1", "On " + fmtDate(st.header.dueDate) + " the bank auto-debits " + fmt(payable) + " — 100% of the statement. Your salary (1st–5th) must still be sitting there. Do not spend against it; it is already gone."],
+    ["1", "On " + fmtDate(st.header.dueDate) + " the bank auto-debits " + fmt(payable) + " — 100% of the statement. Your salary must still be sitting there. Do not spend against it; it is already gone."],
     ["2", "From the 7th, the new cycle opens. Everything you put on the card counts toward the " + fmt(env) + " envelope. Watch the running total in your banking app weekly — not at statement time."],
     ["3", "No cash advances, no new instalment plans. Exceptions are pre-funded purchases where the cash is already in the buffer."]
   ];
   if(cash!=null){
-    var need = payable + env;
+    var need = backingNeed();
     if(cash >= need){
-      steps.push(["✓", "Cash-backing: your buffer (" + fmt(cash) + ") covers this statement plus a full envelope (" + fmt(need) + "). The cycle is broken — keep it green."]);
+      steps.push(["✓", "Cash-backing: your buffer (" + fmt(cash) + ") covers all cards' statements plus a full envelope each (" + fmt(need) + "). The cycle is broken — keep it green."]);
     } else {
-      steps.push(["…", "Cash-backing: buffer " + fmt(cash) + " vs needed " + fmt(need) + " (statement + one envelope). Gap: " + fmt(need-cash) + ". Every month inside the envelope closes it."]);
+      steps.push(["…", "Cash-backing: buffer " + fmt(cash) + " vs needed " + fmt(need) + " (all statements + one envelope per card). Gap: " + fmt(need-cash) + ". Every month inside the envelope closes it."]);
     }
   } else {
     steps.push(["…", "Set your cash buffer above (or fill it in The Ledger) so the backing meter can run."]);
@@ -611,66 +678,74 @@ function renderTxTable(st){
 /* ================= history ================= */
 function renderHistory(){
   var H = document.getElementById("hist"); H.innerHTML="";
-  var env = STORE.envelope || 15000;
+  var env = ENV();
   var cv = document.getElementById("hist-chart");
+  var stmts = STMTS();
+  var c = ACT();
+  document.getElementById("hist-for").textContent = c ? "— " + c.name : "";
 
-  if(!STORE.statements.length){
-    H.appendChild(el("div","hint","No statements yet — upload the first one above."));
+  if(!stmts.length){
+    H.appendChild(el("div","hint","No statements yet for this card — upload the first one above."));
     cv.classList.add("hidden");
     return;
   }
 
-  /* chart */
-  if(STORE.statements.length >= 1){
-    cv.classList.remove("hidden");
-    var ctx = cv.getContext("2d");
-    var W=cv.width, Hh=cv.height;
-    ctx.clearRect(0,0,W,Hh);
-    var sts = STORE.statements;
-    var maxV = Math.max.apply(null, sts.map(function(s){return s.spend;}).concat([env]))*1.15;
-    var padL=70, padR=14, padT=14, padB=30;
-    var bw = (W-padL-padR)/sts.length;
-    ctx.font="11px 'JetBrains Mono', monospace";
-    /* envelope line */
-    var yE = padT + (Hh-padT-padB)*(1 - env/maxV);
-    ctx.strokeStyle="#f54001"; ctx.setLineDash([4,4]); ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(padL,yE); ctx.lineTo(W-padR,yE); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle="#f54001"; ctx.textAlign="right";
-    ctx.fillText("ENVELOPE "+Math.round(env/1000)+"k", W-padR-6, yE-6);
-    /* gridlines */
-    ctx.strokeStyle="#d8cfc0"; ctx.fillStyle="#8a7d6b"; ctx.lineWidth=1;
-    for(var g=0; g<=4; g++){
-      var v=maxV*g/4, y=padT+(Hh-padT-padB)*(1-v/maxV);
-      ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
-      ctx.textAlign="right"; ctx.fillText(Math.round(v/1000)+"k", padL-8, y+4);
-    }
-    sts.forEach(function(s,i){
-      var x = padL + bw*i + bw*0.18, w = bw*0.64;
-      var h = (Hh-padT-padB)*(s.spend/maxV);
-      var y = padT + (Hh-padT-padB) - h;
-      ctx.fillStyle = s.spend>env ? "#a32c00" : "#3d6b4f";
-      ctx.fillRect(x,y,w,h);
-      ctx.fillStyle="#4f483e"; ctx.textAlign="center";
-      var lbl = s.header.stmtDate.slice(3,5)+"/"+s.header.stmtDate.slice(8);
-      ctx.fillText(lbl, x+w/2, Hh-padB+16);
-      ctx.fillText(Math.round(s.spend/1000)+"k", x+w/2, y-6);
-    });
+  cv.classList.remove("hidden");
+  var ctx = cv.getContext("2d");
+  var W=cv.width, Hh=cv.height;
+  ctx.clearRect(0,0,W,Hh);
+  var sts = stmts;
+  var maxV = Math.max.apply(null, sts.map(function(s){return s.spend;}).concat([env]))*1.15;
+  var padL=70, padR=14, padT=14, padB=30;
+  var bw = (W-padL-padR)/sts.length;
+  ctx.font="11px 'JetBrains Mono', monospace";
+  var yE = padT + (Hh-padT-padB)*(1 - env/maxV);
+  ctx.strokeStyle="#f54001"; ctx.setLineDash([4,4]); ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(padL,yE); ctx.lineTo(W-padR,yE); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle="#f54001"; ctx.textAlign="right";
+  ctx.fillText("ENVELOPE "+Math.round(env/1000)+"k", W-padR-6, yE-6);
+  ctx.strokeStyle="#d8cfc0"; ctx.fillStyle="#8a7d6b"; ctx.lineWidth=1;
+  for(var g=0; g<=4; g++){
+    var v=maxV*g/4, y=padT+(Hh-padT-padB)*(1-v/maxV);
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+    ctx.textAlign="right"; ctx.fillText(Math.round(v/1000)+"k", padL-8, y+4);
   }
+  sts.forEach(function(s,i){
+    var x = padL + bw*i + bw*0.18, w = bw*0.64;
+    var h = (Hh-padT-padB)*(s.spend/maxV);
+    var y = padT + (Hh-padT-padB) - h;
+    ctx.fillStyle = s.spend>env ? "#a32c00" : "#3d6b4f";
+    ctx.fillRect(x,y,w,h);
+    ctx.fillStyle="#4f483e"; ctx.textAlign="center";
+    var lbl = s.header.stmtDate.slice(3,5)+"/"+s.header.stmtDate.slice(8);
+    ctx.fillText(lbl, x+w/2, Hh-padB+16);
+    ctx.fillText(Math.round(s.spend/1000)+"k", x+w/2, y-6);
+  });
 
-  /* list (newest first) */
-  STORE.statements.slice().reverse().forEach(function(s){
-    var idx = STORE.statements.indexOf(s);
+  stmts.slice().reverse().forEach(function(s){
+    var idx = stmts.indexOf(s);
     var d = el("div","histitem");
     d.appendChild(el("span","h-d", fmtDate(s.header.stmtDate)));
-    d.appendChild(el("span","h-t", s.txns.length + " transactions · payable " + fmt2(Math.abs(s.header.minDue || s.spend)) + " QAR"));
+    d.appendChild(el("span","h-t", s.txns.length + " transactions · payable " + fmt2(payableOf(s)) + " QAR " +
+      (s.archived ? '<span class="cloudflag">☁</span>' : "")));
     var over = s.spend > env;
     d.appendChild(el("span","h-v "+(over?"over":"under"), fmt2(s.spend) + " QAR " + (over?"▲ over":"✓ in")));
+    if(s.hasPdf){
+      var pa = el("a","h-pdf","PDF");
+      pa.href = "#"; pa.title = "Download the archived original PDF";
+      pa.onclick = function(ev){
+        ev.stopPropagation(); ev.preventDefault();
+        downloadPdf(s);
+      };
+      d.appendChild(pa);
+    }
     var x = el("span","h-x","×"); x.title="Remove this statement";
     x.onclick = function(ev){
       ev.stopPropagation();
       if(!confirm("Remove the statement of "+fmtDate(s.header.stmtDate)+"?")) return;
-      STORE.statements.splice(idx,1); persist();
-      if(CURRENT===s) CURRENT = STORE.statements[STORE.statements.length-1] || null;
+      stmts.splice(idx,1); persist();
+      if(s.archived) LedgerCloud.delDoc("card_stmt", refOf(s)).catch(function(){});
+      if(CURRENT===s) CURRENT = stmts[stmts.length-1] || null;
       renderAll();
     };
     d.appendChild(x);
@@ -679,12 +754,37 @@ function renderHistory(){
   });
 }
 
-/* ================= envelope / backing panels ================= */
-function renderGauges(){
-  var env = STORE.envelope || 15000;
-  var last = CURRENT || STORE.statements[STORE.statements.length-1];
+function refOf(s){
+  var cid = Object.keys(STORE.by).filter(function(k){ return STORE.by[k].statements.indexOf(s) >= 0; })[0] || STORE.activeId;
+  return cid + ":" + s.header.stmtDate.slice(6) + s.header.stmtDate.slice(3,5) + s.header.stmtDate.slice(0,2);
+}
 
-  /* envelope gauge */
+function downloadPdf(s){
+  if(!LedgerCloud.user()){ alert("Sign in to download archived PDFs."); return; }
+  LedgerCloud.getPdf("card_stmt", refOf(s)).then(function(b64){
+    if(!b64){ alert("No PDF archived for this statement."); return; }
+    var a = document.createElement("a");
+    a.href = "data:application/pdf;base64," + b64;
+    a.download = "card-statement-" + s.header.stmtDate.replace(/\//g,"-") + ".pdf";
+    document.body.appendChild(a); a.click(); a.remove();
+  }).catch(function(e){ alert("Download failed: " + (e.message||e)); });
+}
+
+/* ================= envelope / backing panels ================= */
+function backingNeed(){
+  var need = 0;
+  STORE.cards.forEach(function(c){
+    var ss = (STORE.by[c.id]||{statements:[]}).statements;
+    var last = ss[ss.length-1];
+    if(last) need += payableOf(last);
+    need += c.envelope || 0;
+  });
+  return need;
+}
+function renderGauges(){
+  var env = ENV();
+  var last = CURRENT || STMTS()[STMTS().length-1];
+
   if(last){
     var maxE = Math.max(last.spend, env)*1.15;
     renderGauge("env-gauge", last.spend, env, maxE,
@@ -701,17 +801,16 @@ function renderGauges(){
     document.getElementById("env-note").innerHTML = "";
   }
 
-  /* backing gauge */
   var cash = currentCash();
-  if(last && cash!=null){
-    var need = Math.abs(last.header.minDue || last.spend) + env;
-    var ratio = need>0 ? cash/need : 1;
+  var need = backingNeed();
+  if(need>0 && cash!=null){
+    var ratio = cash/need;
     renderGauge("back-gauge", cash, need, Math.max(need, cash)*1.1,
       fmt2(cash)+" of "+fmt2(need), (ratio*100).toFixed(0)+"% backed");
     document.getElementById("back-note").innerHTML =
       '<div class="note '+(ratio>=1?"good":"warn")+'"><div class="note-t">'+
       (ratio>=1
-        ? "Fully backed. The card now works for you — float, points, protection — and can never take you hostage."
+        ? "Fully backed. The cards now work for you — float, points, protection — and can never take you hostage."
         : "Gap to full backing: "+fmt2(need-cash)+" QAR. Each inside-envelope month closes it by the surplus.")+
       "</div></div>";
   } else {
@@ -720,28 +819,100 @@ function renderGauges(){
   }
 }
 
+/* ================= card switcher ================= */
+function renderCards(){
+  var box = document.getElementById("cardchips"); box.innerHTML="";
+  STORE.cards.forEach(function(c){
+    var chip = el("div","cardchip"+(c.id===STORE.activeId?" on":""));
+    chip.appendChild(el("div","cc-name", esc(c.name)));
+    chip.appendChild(el("div","cc-sub",
+      (c.owner==="wife"?"Wife's · ":c.owner==="other"?"Supp. · ":"") +
+      (c.last4 ? "••••"+esc(c.last4)+" · " : "") +
+      "envelope " + (c.envelope||0).toLocaleString("en-US")));
+    chip.onclick = function(){
+      STORE.activeId = c.id;
+      CURRENT = STMTS()[STMTS().length-1] || null;
+      persist(); renderAll();
+    };
+    box.appendChild(chip);
+  });
+  var add = el("div","cardchip add","＋ Add card");
+  add.onclick = function(){ document.getElementById("addcard").classList.toggle("open"); };
+  box.appendChild(add);
+  var ac = ACT();
+  document.getElementById("up-for").textContent = ac ? "— uploading to: " + ac.name : "— add a card first";
+}
+
+document.getElementById("nc-add").onclick = function(){
+  var name = document.getElementById("nc-name").value.trim();
+  if(!name){ alert("Give the card a name."); return; }
+  var c = {
+    id: "c" + Date.now().toString(36),
+    name: name,
+    last4: document.getElementById("nc-last4").value.trim(),
+    owner: document.getElementById("nc-owner").value,
+    limit: parseFloat(document.getElementById("nc-limit").value) || 0,
+    envelope: parseFloat(document.getElementById("nc-env").value) || 15000
+  };
+  STORE.cards.push(c);
+  STORE.activeId = c.id;
+  ["nc-name","nc-last4","nc-limit","nc-env"].forEach(function(id){ document.getElementById(id).value=""; });
+  document.getElementById("addcard").classList.remove("open");
+  CURRENT = null;
+  persist(); renderAll();
+};
+
 function renderAll(){
-  renderPhases(); renderGauges(); renderCurrent(); renderHistory();
+  renderCards(); renderPhases(); renderGauges(); renderCurrent(); renderHistory();
+  var envIn = document.getElementById("envelope");
+  if(document.activeElement !== envIn) envIn.value = ENV();
 }
 
 /* ================= upload wiring ================= */
+function archiveStatement(st, pdfB64){
+  if(!LedgerCloud.user()) return;
+  var ref = stmtRef(st);
+  var hasPdf = pdfB64 ? true : !!st.hasPdf;
+  var data = { header: st.header, txns: st.txns, spend: st.spend, credits: st.credits,
+               cats: st.cats, payment: st.payment, ai: st.ai || null, hasPdf: hasPdf, uploadedAt: Date.now() };
+  /* POST when the PDF is attached; PATCH otherwise so an archived PDF is never wiped */
+  var write = pdfB64 ? LedgerCloud.putDoc("card_stmt", ref, data, pdfB64)
+                     : LedgerCloud.patchDoc("card_stmt", ref, data);
+  write.then(function(){
+    st.archived = true; st.hasPdf = hasPdf;
+    persistLocalOnly(); renderHistory();
+    LedgerCloud.note("Statement archived to cloud ✓");
+  }).catch(function(e){ LedgerCloud.note("Saved locally — cloud failed", String(e.message||e)); });
+}
+
 function handleFile(file){
   if(!file) return;
+  if(!ACT()){ alert("Add a card first — the statement needs a home."); return; }
   var err = document.getElementById("parse-err"); err.innerHTML="";
   var dropEl = document.getElementById("drop");
   dropEl.querySelector(".big").textContent = "Reading " + file.name + "…";
-  readPdf(file).then(function(pages){
+  var pdfB64 = null;
+  var prep = document.getElementById("up-arch").checked
+    ? file.arrayBuffer().then(function(buf){
+        var bin = "", bytes = new Uint8Array(buf);
+        for(var i=0;i<bytes.length;i+=8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i+8192));
+        pdfB64 = btoa(bin);
+      })
+    : Promise.resolve();
+  prep.then(function(){ return readPdf(file); }).then(function(pages){
     var parsed = parseStatementText(pages);
     if(!parsed.header.stmtDate || !parsed.txns.length)
-      throw new Error("Could not find a statement header and transactions in this PDF — is it the Doha Bank eStatement?");
+      throw new Error("Could not find a statement header and transactions in this PDF — is it the Doha Bank card eStatement?");
     var st = analyzeStatement({ header: parsed.header, txns: parsed.txns });
-    /* upsert by statement date */
+    var stmts = STMTS();
     var existing = -1;
-    STORE.statements.forEach(function(s,i){ if(s.header.stmtDate===st.header.stmtDate) existing=i; });
-    if(existing>=0) STORE.statements[existing]=st; else STORE.statements.push(st);
-    STORE.statements.sort(function(a,b){ return dmy(a.header.stmtDate)-dmy(b.header.stmtDate); });
+    stmts.forEach(function(s,i){ if(s.header.stmtDate===st.header.stmtDate) existing=i; });
+    if(existing>=0){ st.archived = stmts[existing].archived; st.hasPdf = stmts[existing].hasPdf; st.ai = stmts[existing].ai; stmts[existing]=st; }
+    else stmts.push(st);
+    stmts.sort(function(a,b){ return dmy(a.header.stmtDate)-dmy(b.header.stmtDate); });
     persist();
     CURRENT = st;
+    archiveStatement(st, pdfB64);
     dropEl.querySelector(".big").textContent = "Drop the statement PDF here — or click to choose";
     document.getElementById("ai-out").innerHTML = "";
     renderAll();
@@ -760,11 +931,16 @@ drop.ondrop = function(e){ e.preventDefault(); drop.classList.remove("over"); ha
 
 /* ================= inputs ================= */
 var envIn = document.getElementById("envelope"), cashIn = document.getElementById("cashbuf");
-envIn.value = STORE.envelope || 15000;
+envIn.value = ENV();
 var cc = currentCash();
 if(cc!=null) cashIn.value = cc;
-envIn.addEventListener("input", function(){ STORE.envelope = parseFloat(envIn.value)||0; persist(); renderAll(); });
-cashIn.addEventListener("input", function(){ STORE.cashbuf = cashIn.value===""?null:(parseFloat(cashIn.value)||0); persist(); renderAll(); });
+envIn.addEventListener("input", function(){
+  var c = ACT(); if(!c) return;
+  c.envelope = parseFloat(envIn.value)||0; persist(); renderAll();
+});
+cashIn.addEventListener("input", function(){
+  STORE.cashbuf = cashIn.value===""?null:(parseFloat(cashIn.value)||0); persist(); renderAll();
+});
 
 /* ================= AI analyst (Kimi / Moonshot) ================= */
 var AI_KEY_LS = "ledger-cards-aikey";
@@ -805,9 +981,9 @@ function pickModel(list){
 function buildAiPayload(st){
   return {
     statement_date: st.header.stmtDate, due_date: st.header.dueDate,
-    payable_full_auto_debit_qar: Math.abs(st.header.minDue || st.spend - st.credits),
+    payable_full_auto_debit_qar: payableOf(st),
     total_spend_qar: +st.spend.toFixed(2), refunds_qar: +st.credits.toFixed(2),
-    monthly_envelope_qar: STORE.envelope || 15000,
+    monthly_envelope_qar: ENV(),
     keyword_categories_qar: st.cats,
     transactions: st.txns.map(function(t){ return { date:t.date, merchant:t.desc, cur:t.cur, amount:t.amt, qar:t.bill }; })
   };
@@ -815,9 +991,9 @@ function buildAiPayload(st){
 
 var AI_SYS = [
 "You are an elite personal-finance coach analysing one monthly credit-card statement for a user in Qatar (currency: QAR).",
-"Card mechanics: 55,000 QAR limit; statement issued on the 6th; 100% of the statement is auto-debited from the user's salary on the 30th; salary arrives between the 1st and 5th. The user is breaking a card-dependency cycle using a hard monthly envelope (given in the data). Rules already in force: no cash advances ever; travel and large purchases must be pre-funded from sinking funds; subscriptions get culled.",
+"Card mechanics: 55,000 QAR limit; statement issued on the 6th; 100% of the statement is auto-debited from the user's salary account on the 30th. The user is breaking a card-dependency cycle using a hard monthly envelope (given in the data). Rules already in force: no cash advances ever; travel and large purchases must be pre-funded from sinking funds; subscriptions get culled.",
 "Respond with STRICT JSON ONLY — no markdown fences, no commentary — in exactly this shape:",
-'{',
+'{' ,
 ' "headline": "one-sentence verdict on this statement",',
 ' "coaching": [{"tone":"good|warn|bad|info","title":"short title","text":"2-4 sentences with exact figures"}],',
 ' "plan": ["step 1", "step 2"],',
@@ -891,7 +1067,7 @@ function renderAiResult(res, st){
     });
     var trT = el("tr");
     trT.appendChild(el("td",null,"Total"));
-    trT.appendChild(el("td","r", fmt2(sum) + (sum > (STORE.envelope||15000) ? " ⚠ over envelope" : "")));
+    trT.appendChild(el("td","r", fmt2(sum) + (sum > ENV() ? " ⚠ over envelope" : "")));
     body.appendChild(trT);
     tb.appendChild(body);
     aiOut.appendChild(tb);
@@ -903,7 +1079,9 @@ function renderAiResult(res, st){
       "Merchant categories corrected — see “Where it went” and the transaction table above."));
     renderGauges(); renderCurrent(); renderHistory();
   }
+  st.ai = { at: Date.now(), headline: res.headline || "", coaching: res.coaching || [], plan: res.plan || [], targets: res.targets || [] };
   persist();
+  if(st.archived) archiveStatement(st, null);
 }
 
 aiGo.onclick = function(){
@@ -931,9 +1109,66 @@ aiGo.onclick = function(){
   }).then(function(){ aiGo.disabled = false; });
 };
 
+/* ================= cloud load on sign-in ================= */
+function cloudLoadAll(){
+  if(!LedgerCloud.user()) return;
+  LedgerCloud.getDoc("cards","default").then(function(d){
+    if(d && d.data && d.data.cards && d.data.cards.length){
+      var local = JSON.stringify(STORE.cards.map(function(c){ return c.id; }).sort());
+      var remote = JSON.stringify(d.data.cards.map(function(c){ return c.id; }).sort());
+      if(remote !== local || !STORE.cards.length){
+        STORE.cards = d.data.cards;
+        if(!ACT()) STORE.activeId = STORE.cards[0].id;
+      }
+    } else if(STORE.cards.length){
+      LedgerCloud.putDoc("cards","default",{ cards: STORE.cards }).catch(function(){});
+    }
+  }).catch(function(){});
+  LedgerCloud.listDocs("card_stmt").then(function(rows){
+    var merged = false;
+    rows.forEach(function(r){
+      var cid = r.ref.split(":")[0];
+      if(!STORE.by[cid]) STORE.by[cid] = { statements: [] };
+      var stmts = STORE.by[cid].statements;
+      var d = r.data;
+      if(!d || !d.header || !d.header.stmtDate) return;
+      var idx = -1;
+      stmts.forEach(function(s,i){ if(s.header.stmtDate === d.header.stmtDate) idx = i; });
+      var st = analyzeStatement({ header: d.header, txns: d.txns || [] });
+      st.archived = true; st.hasPdf = !!d.hasPdf; st.ai = d.ai || null;
+      if(idx >= 0){ if(!stmts[idx].ai && st.ai) stmts[idx].ai = st.ai; stmts[idx].archived = true; stmts[idx].hasPdf = st.hasPdf; }
+      else { stmts.push(st); merged = true; }
+      stmts.sort(function(a,b){ return dmy(a.header.stmtDate)-dmy(b.header.stmtDate); });
+    });
+    if(merged || rows.length){
+      if(!CURRENT) CURRENT = STMTS()[STMTS().length-1] || null;
+      persistLocalOnly(); renderAll();
+    }
+  }).catch(function(){});
+  LedgerCloud.getLedger().then(function(d){
+    var st = d && (d.state || d);
+    if(st && st.inv && st.inv.cash != null && STORE.cashbuf == null){
+      STORE.cashbuf = st.inv.cash;
+      cashIn.value = st.inv.cash;
+      persistLocalOnly(); renderAll();
+    }
+  }).catch(function(){});
+}
+function persistLocalOnly(){ try{ localStorage.setItem(LS, JSON.stringify(STORE)); }catch(e){} }
+
 /* ================= boot ================= */
-CURRENT = STORE.statements[STORE.statements.length-1] || null;
+/* ensure every stored statement carries its derived analysis fields
+   (must run here, after CATS_N / SUBS_N are initialized) */
+Object.keys(STORE.by).forEach(function(cid){
+  (STORE.by[cid].statements || []).forEach(function(st){
+    if(st && !st.subs){ try{ analyzeStatement(st); }catch(e){} }
+  });
+});
+CURRENT = STMTS()[STMTS().length-1] || null;
 renderAll();
+LedgerCloud.mount(document.getElementById("cloudbar"), {
+  onUser: function(u){ if(u) cloudLoadAll(); }
+});
 })();
 </script>
 
