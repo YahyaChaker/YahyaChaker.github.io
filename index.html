@@ -195,7 +195,7 @@
         <option value="PHP">PHP — Philippine Peso</option>
       </select>
     </span>
-    <span><a href="card.html">The Card Desk →</a></span>
+    <span><a href="daybook.html">The Day Book</a> · <a href="card.html">The Card Desk →</a></span>
   </div>
   <div class="nameplate">
     <h1>The Ledger</h1>
@@ -801,7 +801,8 @@
       document.querySelectorAll(".rows .row").forEach(function(r){ r.remove(); });
       Object.keys(KINDS).forEach(function(k){
         (s[k] || []).forEach(function(item){
-          addRow(k, KINDS[k].cols.map(function(f){ return (item[f] !== "" && item[f] != null) ? item[f] : ""; }));
+          addRow(k, KINDS[k].cols.map(function(f){ return (item[f] !== "" && item[f] != null) ? item[f] : "";
+          }));
         });
       });
       if(s.inv){
