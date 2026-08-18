@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Day Book — The Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="cloud.js"></script>
+<style>
+  :root{
+    --paper:#ece4d9; --cream:#f4f0ea; --card:#fffbf5;
+    --ink:#4f483e; --ink-deep:#3a342c; --muted:#8a7d6b;
+    --accent:#f54001; --accent-tint:#ffc198; --rule:#d8cfc0;
+    --good:#3d6b4f; --bad:#a32c00; --warnc:#d9a441;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:14.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+  .masthead{max-width:1160px;margin:0 auto;padding:24px 28px 0}
+  .meta-row{display:flex;justify-content:space-between;align-items:center;gap:14px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--ink);padding-bottom:9px}
+  .meta-row a{color:var(--muted);text-decoration:none}
+  .meta-row a:hover{color:var(--accent)}
+  .nameplate{text-align:center;padding:26px 0 20px;border-bottom:4px double var(--ink)}
+  .nameplate h1{font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(30px,5vw,52px);color:var(--ink-deep);letter-spacing:-.01em}
+  .nameplate .tag{margin-top:10px;font-size:12px;color:var(--muted);letter-spacing:.26em;text-transform:uppercase}
+
+  .wrap{max-width:1160px;margin:32px auto 60px;padding:0 28px}
+
+  .panel{background:var(--cream);border:1px solid var(--ink);padding:20px 22px;margin-bottom:22px}
+  .panel>h2{font-family:'Playfair Display',serif;font-weight:700;font-size:19px;color:var(--ink-deep);border-bottom:1px solid var(--ink);padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .panel .hint{font-size:11.5px;color:var(--muted);margin:4px 0 12px}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--ink);border:1px solid var(--ink);margin-bottom:22px}
+  @media(max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--card);padding:13px 15px}
+  .kpi .lab{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .kpi .val{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700;color:var(--ink-deep);margin-top:3px}
+  .kpi .val.good{color:var(--good)} .kpi .val.bad{color:var(--bad)} .kpi .val.hot{color:var(--accent)}
+  .kpi .sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+  .note{border-left:3px solid var(--muted);padding:9px 13px;margin-bottom:10px;background:var(--card);font-size:12.5px}
+  .note .note-t{font-weight:600;font-size:13px;color:var(--ink-deep)}
+  .note .note-x{color:var(--ink);margin-top:1px}
+  .note.bad{border-color:var(--bad)} .note.warn{border-color:var(--warnc)} .note.good{border-color:var(--good)}
+
+  .btn{background:none;border:1px solid var(--ink);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:7px 14px;cursor:pointer}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.small{padding:3px 9px;font-size:9.5px}
+  .btn:disabled{opacity:.4;cursor:default}
+
+  /* entry form */
+  .typetoggle{display:inline-flex;border:1px solid var(--ink)}
+  .typetoggle button{background:var(--card);border:none;color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:8px 18px;cursor:pointer}
+  .typetoggle button.on{background:var(--ink-deep);color:var(--card)}
+  .formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px;align-items:end}
+  .formgrid label{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+  .formgrid input,.formgrid select{width:100%;background:var(--card);border:1px solid var(--rule);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:12.5px;padding:7px 9px;outline:none}
+  .formgrid input:focus,.formgrid select:focus{border-color:var(--accent)}
+
+  /* entries list */
+  .daygroup{margin-bottom:14px}
+  .daygroup .dhead{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--ink);padding-bottom:3px;margin-bottom:2px}
+  table.tx{width:100%;border-collapse:collapse;font-size:12px}
+  .tx td{padding:5px 8px 5px 0;border-bottom:1px solid var(--rule);font-size:12.5px;vertical-align:middle}
+  .tx td.r{text-align:right}
+  .tx td.mono{font-family:'JetBrains Mono',monospace;font-size:11.5px}
+  .tagc{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border:1px solid var(--rule);color:var(--muted)}
+  .tagc.m-cash{color:var(--warnc);border-color:var(--warnc)}
+  .tagc.m-transfer{color:var(--ink);border-color:var(--ink)}
+  .tagc.m-card{color:var(--accent);border-color:var(--accent)}
+  .tagc.inc{color:var(--good);border-color:var(--good)}
+  .e-x{color:var(--muted);cursor:pointer;padding:0 4px;font-size:14px}
+  .e-x:hover{color:var(--bad)}
+  .e-edit{color:var(--muted);cursor:pointer;font-size:11px;text-decoration:underline}
+  .e-edit:hover{color:var(--accent)}
+  tr.e-inc td{color:var(--good)}
+
+  /* month nav */
+  .monthnav{display:flex;align-items:center;gap:16px;font-family:'Playfair Display',serif}
+  .monthnav .mbtn{background:none;border:1px solid var(--ink);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 12px;cursor:pointer}
+  .monthnav .mbtn:hover{border-color:var(--accent);color:var(--accent)}
+  .monthnav .mlabel{font-size:19px;font-weight:700;color:var(--ink-deep);min-width:170px;text-align:center}
+  .chip{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border:1px solid var(--rule);color:var(--muted)}
+  .chip.closed{color:var(--good);border-color:var(--good)}
+  .chip.recon{color:var(--warnc);border-color:var(--warnc)}
+
+  /* drop zone */
+  .drop{border:2px dashed var(--muted);background:var(--card);padding:22px;text-align:center;cursor:pointer;transition:border-color .15s}
+  .drop:hover,.drop.over{border-color:var(--accent)}
+  .drop .big{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--ink-deep)}
+  .drop .small{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .drop input{display:none}
+
+  /* reconciliation */
+  .line{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid var(--rule);font-size:12.5px}
+  .line .l-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);min-width:74px}
+  .line .l-desc{flex:1;min-width:200px}
+  .line .l-amt{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700}
+  .line .l-amt.dr{color:var(--bad)} .line .l-amt.cr{color:var(--good)}
+  .line select{background:var(--card);border:1px solid var(--rule);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 6px;outline:none}
+  .line .l-cls{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--rule);padding:1px 6px}
+  details.recon{border:1px solid var(--rule);background:var(--card);margin-bottom:10px}
+  details.recon>summary{cursor:pointer;padding:9px 13px;font-weight:600;font-size:13px;color:var(--ink-deep);list-style:none}
+  details.recon>summary::-webkit-details-marker{display:none}
+  details.recon>summary::before{content:"▸ ";color:var(--accent)}
+  details.recon[open]>summary::before{content:"▾ "}
+  details.recon .body{padding:4px 10px 10px}
+
+  /* wallet */
+  .walletgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--ink);border:1px solid var(--ink);margin:10px 0}
+  @media(max-width:820px){.walletgrid{grid-template-columns:repeat(2,1fr)}}
+  .walletgrid .wc{background:var(--card);padding:10px 13px}
+  .walletgrid .wc .lab{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .walletgrid .wc .val{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--ink-deep);margin-top:2px}
+  .walletgrid input{width:110px;background:var(--cream);border:1px solid var(--rule);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:13px;padding:4px 7px;outline:none}
+  .walletgrid input:focus{border-color:var(--accent)}
+
+  /* verdict table */
+  table.vt{width:100%;border-collapse:collapse}
+  .vt th{text-align:left;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-top:1.5px solid var(--ink);border-bottom:1px solid var(--ink);padding:6px 8px 6px 0}
+  .vt td{padding:6px 8px 6px 0;border-bottom:1px solid var(--rule);font-family:'JetBrains Mono',monospace;font-size:11.5px}
+  .vt td.r,.vt th.r{text-align:right}
+  .vt tbody tr:last-child td{border-bottom:1.5px solid var(--ink)}
+  .delta.up{color:var(--bad)} .delta.down{color:var(--good)} .delta.flat{color:var(--muted)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .hidden{display:none}
+
+  footer{border-top:1px solid var(--ink);background:var(--cream)}
+  .fineprint{max-width:1160px;margin:0 auto;padding:18px 28px 34px;font-size:11px;line-height:1.6;color:var(--muted)}
+  .fineprint b{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="meta-row">
+    <span><a href="index.html">← The Ledger</a></span>
+    <span>The Day Book</span>
+    <span><a href="card.html">The Card Desk →</a></span>
+  </div>
+  <div class="nameplate">
+    <h1>The Day Book</h1>
+    <div class="tag">Record every rial as it leaves — then make the bank prove it</div>
+  </div>
+</header>
+
+<div id="cloudbar"></div>
+
+<div class="wrap">
+
+  <!-- ============ ENTRY ============ -->
+  <div class="panel" id="p-entry">
+    <h2>Record a movement</h2>
+    <div class="hint">Ten seconds now saves an hour at month-end. Cash, transfer, or card — everything goes in the book.</div>
+    <div class="typetoggle">
+      <button id="t-exp" class="on">Expense</button>
+      <button id="t-inc">Income</button>
+    </div>
+    <div class="formgrid">
+      <div><label>Date</label><input type="date" id="f-date"></div>
+      <div><label>Amount (QAR)</label><input type="number" id="f-amt" min="0" step="0.01" placeholder="0.00"></div>
+      <div><label>Paid / received by</label><select id="f-method"></select></div>
+      <div><label>Category</label><select id="f-cat"></select></div>
+      <div><label>Payee / source</label><input type="text" id="f-payee" placeholder="e.g. Family Food Centre"></div>
+      <div><label>Note (optional)</label><input type="text" id="f-note" placeholder="—"></div>
+      <div><label>&nbsp;</label><label style="text-transform:none;letter-spacing:0;font-size:11px;color:var(--ink)"><input type="checkbox" id="f-recur" style="width:auto;margin-right:6px">Repeats monthly</label></div>
+      <div><button class="btn primary" id="f-add" style="width:100%;padding:9px">Add to the book</button></div>
+    </div>
+    <div id="f-editing" class="hidden" style="margin-top:8px"><span class="chip">editing entry</span> <span class="e-edit" id="f-cancel">cancel</span></div>
+  </div>
+
+  <!-- ============ MONTH ============ -->
+  <div class="panel" id="p-month">
+    <h2>
+      <span class="monthnav">
+        <button class="mbtn" id="m-prev">←</button>
+        <span class="mlabel" id="m-label">—</span>
+        <button class="mbtn" id="m-next">→</button>
+      </span>
+      <span id="m-status"></span>
+    </h2>
+    <div class="kpis" id="m-kpis" style="margin:14px 0"></div>
+    <div id="m-entries"></div>
+  </div>
+
+  <!-- ============ WALLET ============ -->
+  <div class="panel" id="p-wallet">
+    <h2>Cash wallet</h2>
+    <div class="hint">Cash never appears on a bank statement — so the book tracks it as a wallet. ATM withdrawals load it; cash expenses empty it. Count your physical cash at month-end: it should match.</div>
+    <div class="walletgrid">
+      <div class="wc"><div class="lab">Opening (last month)</div><div class="val" id="w-open">—</div></div>
+      <div class="wc"><div class="lab">+ ATM withdrawals</div><div class="val" id="w-atm">—</div></div>
+      <div class="wc"><div class="lab">− Cash expenses</div><div class="val" id="w-spent">—</div></div>
+      <div class="wc"><div class="lab">= Expected in hand</div><div class="val" id="w-expect">—</div></div>
+      <div class="wc"><div class="lab">Counted (you)</div><div class="val"><input type="number" id="w-count" min="0" step="0.01" placeholder="—"></div></div>
+    </div>
+    <div id="w-note"></div>
+  </div>
+
+  <!-- ============ STATEMENT & RECONCILIATION ============ -->
+  <div class="panel" id="p-stmt">
+    <h2>Bank statement &amp; reconciliation <span id="s-badge"></span></h2>
+    <div class="hint">Download the account statement from Doha Bank for the full calendar month (1st → last day) and drop it here — ideally on the 1st–3rd of the new month. Parsed entirely in this browser; the extracted lines sync to your cloud account.</div>
+    <div class="drop" id="drop">
+      <div class="big">Drop the account statement PDF here — or click to choose</div>
+      <div class="small">Doha Bank Account eStatement · verified against the bank's own totals before acceptance</div>
+      <input type="file" id="file" accept="application/pdf">
+    </div>
+    <label style="display:block;margin-top:8px;font-size:11.5px;color:var(--ink)"><input type="checkbox" id="s-pdf" checked style="margin-right:6px">Also archive the original PDF in my cloud account (viewable anytime, any device)</label>
+    <div id="parse-err"></div>
+    <div id="s-info"></div>
+    <div id="s-queues"></div>
+    <div id="s-close"></div>
+  </div>
+
+  <!-- ============ VERDICT ============ -->
+  <div class="panel" id="p-verdict">
+    <h2>The month's verdict</h2>
+    <div class="hint">Reality against the plan — actual spending by category versus what The Ledger said you'd spend.</div>
+    <div id="v-body"></div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="fineprint">
+    <b>Privacy.</b> Statement PDFs are parsed locally in this browser — the file itself is never uploaded unless you tick the archive option. Signed in, your records sync to your own private cloud account, readable only by you (row-level security). Signed out, everything stays on this device.
+    <b>Honesty.</b> The parser proves itself against the bank's own totals before accepting a statement; if the numbers don't tie to the rial, the upload is rejected.
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+var LS = "ledger-daybook-v1";
+var LS_CARDS = "ledger-cards-v2";
+
+/* ================= categories ================= */
+var EXP_CATS = ["Groceries","Food delivery","Dining & cafés","Subscriptions & apps","Medical & pharmacy",
+  "Travel & transport","Utilities, phone & gov","Shopping & retail","Rent & housing","School & kids",
+  "Family & remittances","Bank fees & charges","Other"];
+var INC_CATS = ["Salary","Bonus","Refund","Transfer in","Other income"];
+
+/* ================= state ================= */
+var STORE = { curMonth: null, months: {}, cards: [], plan: null };
+try{ var s = JSON.parse(localStorage.getItem(LS)); if(s && s.months) STORE = Object.assign(STORE, s); }catch(e){}
+
+function today(){ var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function monthOf(iso){ return iso.slice(0,7); }
+if(!STORE.curMonth) STORE.curMonth = monthOf(today());
+
+function ensureMonth(m){
+  if(!STORE.months[m]) STORE.months[m] = { entries: [], walletCount: null, walletOpening: null, closed: false, closedAt: null, stmt: null, updatedAt: 0 };
+  return STORE.months[m];
+}
+function M(){ return ensureMonth(STORE.curMonth); }
+
+var syncTimer = {};
+function persist(){
+  try{ localStorage.setItem(LS, JSON.stringify(STORE)); }catch(e){}
+  /* cloud sync: current month doc + its statement doc, debounced */
+  if(!LedgerCloud.user()) return;
+  ["daybook","acct_stmt"].forEach(function(kind){
+    clearTimeout(syncTimer[kind]);
+    syncTimer[kind] = setTimeout(function(){
+      var m = STORE.curMonth, doc = STORE.months[m];
+      if(kind === "daybook"){
+        LedgerCloud.putDoc("daybook", m, { entries: doc.entries, walletCount: doc.walletCount, walletOpening: doc.walletOpening, closed: doc.closed, closedAt: doc.closedAt, updatedAt: doc.updatedAt })
+          .then(function(){ LedgerCloud.note("Saved to cloud ✓ " + new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})); })
+          .catch(function(e){ LedgerCloud.note("Offline — saved locally", String(e.message||e)); });
+      } else if(doc.stmt){
+        /* PATCH: data-only update — never wipes an archived PDF */
+        LedgerCloud.patchDoc("acct_stmt", m, doc.stmt).catch(function(){});
+      }
+    }, 700);
+  });
+}
+function touch(){ M().updatedAt = Date.now(); }
+
+/* ================= helpers ================= */
+function el(tag, cls, html){ var e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; }
+function fmt(n){ if(n==null || !isFinite(n)) return "—"; var s=n<0?"-":""; n=Math.abs(n);
+  return s + n.toLocaleString("en-US",{maximumFractionDigits:0}) + " QAR"; }
+function fmt2(n){ if(n==null || !isFinite(n)) return "—"; var s=n<0?"-":""; n=Math.abs(n);
+  return s + n.toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function uid(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function dmy(s){ var p=s.split("/"); return new Date(+p[2], +p[1]-1, +p[0]); }         /* DD/MM/YYYY */
+function isoFromDmy(s){ var p=s.split("/"); return p[2]+"-"+p[1]+"-"+p[0]; }
+function fmtDmy(s){ return dmy(s).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}); }
+function fmtIso(d){ return new Date(d+"T00:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}); }
+function monthLabel(m){ return new Date(+m.slice(0,4), +m.slice(5,7)-1, 1).toLocaleDateString("en-GB",{month:"long",year:"numeric"}); }
+function daysBetween(aIso, bDmy){ var a=new Date(aIso+"T00:00:00"), b=dmy(bDmy); return Math.round((a-b)/86400000); }
+function normKey(s){ return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,""); }
+
+/* ================= pdf ================= */
+function readPdf(file){
+  return file.arrayBuffer().then(function(buf){
+    return pdfjsLib.getDocument({data:buf}).promise;
+  }).then(function(pdf){
+    var pages = [], chain = Promise.resolve();
+    for(var p=1; p<=pdf.numPages; p++){
+      (function(pno){
+        chain = chain.then(function(){
+          return pdf.getPage(pno).then(function(page){
+            return page.getTextContent().then(function(tc){
+              pages[pno-1] = tc.items.map(function(it){
+                return { x: it.transform[4], y: it.transform[5], str: it.str };
+              }).filter(function(it){ return it.str.trim().length; });
+            });
+          });
+        });
+      })(p);
+    }
+    return chain.then(function(){ return pages; });
+  });
+}
+function pnum(s){ return parseFloat(String(s).replace(/,/g,"")); }
+
+/* Doha Bank *account* eStatement parser.
+   Columns: Date x<80 | Doc# 85-145 | Description 145-345 | Value date 345-395 |
+            Debit 395-450 | Credit 450-503 | Balance >=503  (right-aligned; x = item origin)
+   Validation: bank prints its own totals on the last page — debit sum, credit sum,
+   movement counts — plus opening/clearing balance tie-out. All four must match. */
+function parseAccountStatement(pages){
+  var header = null, totals = null, lines = [];
+  pages.forEach(function(items, pno){
+    var rows = {};
+    items.forEach(function(it){ var k = Math.round(it.y/2); (rows[k]=rows[k]||[]).push(it); });
+    Object.keys(rows).map(Number).sort(function(a,b){ return b-a; }).forEach(function(k){
+      var row = rows[k].sort(function(a,b){ return a.x-b.x; });
+      var joined = row.map(function(w){ return w.str; }).join(" ");
+
+      /* bank totals block: "Total Movements (QAR) : 39,002.83 41,171.00" */
+      if(/Total\s+Movements/i.test(joined)){
+        var tm = joined.match(/([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/);
+        if(tm) totals = { debit: pnum(tm[1]), credit: pnum(tm[2]) };
+        return;
+      }
+      if(/Number\s+of\s+Movements/i.test(joined)){
+        var nm = joined.match(/:\s*(\d+)\s+(\d+)/);
+        if(nm && totals){ totals.nDebit = +nm[1]; totals.nCredit = +nm[2]; }
+        return;
+      }
+
+      /* header row: period + currency + opening + closing */
+      if(!header){
+        var hm = /(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}\/\d{2}\/\d{4}).*?(QAR|USD)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/.exec(joined);
+        if(hm){ header = { from: hm[1], to: hm[2], cur: hm[3], opening: pnum(hm[4]), closing: pnum(hm[5]) }; return; }
+      }
+
+      /* transaction anchor: date at x<80 */
+      if(row.length && /^\d{2}\/\d{2}\/\d{4}$/.test(row[0].str) && row[0].x < 80){
+        var debit=null, credit=null, bal=null;
+        row.forEach(function(w){
+          if(!/^-?[\d,]+\.\d{2}$/.test(w.str)) return;
+          if(w.x>=395 && w.x<450) debit = pnum(w.str);
+          else if(w.x>=450 && w.x<503) credit = pnum(w.str);
+          else if(w.x>=503) bal = pnum(w.str);
+        });
+        if(debit==null && credit==null) return;
+        var vd = null;
+        row.forEach(function(w){ if(w.x>=345 && w.x<395 && /^\d{2}\/\d{2}\/\d{4}$/.test(w.str)) vd = w.str; });
+        lines.push({
+          id: "l"+pno+"_"+k,
+          date: row[0].str,
+          docno: row.filter(function(w){ return w.x>=85 && w.x<145; }).map(function(w){ return w.str; }).join(""),
+          desc: row.filter(function(w){ return w.x>=145 && w.x<345; }).map(function(w){ return w.str; }).join(" "),
+          valueDate: vd,
+          debit: debit||0, credit: credit||0, balance: bal,
+          cls: null, status: "pending", entryId: null,
+          _y: k
+        });
+        return;
+      }
+
+      /* continuation line: doc# fragment (85-145) or description (145-345) below the anchor */
+      if(lines.length && row.length && row[0].x >= 85 && !/^\d{2}\/\d{2}\/\d{4}$/.test(row[0].str)){
+        var prev = lines[lines.length-1];
+        if(prev._y - k > 0 && prev._y - k < 12){
+          var cd = row.filter(function(w){ return w.x>=85 && w.x<145; }).map(function(w){ return w.str; }).join("");
+          var cx = row.filter(function(w){ return w.x>=145 && w.x<345; }).map(function(w){ return w.str; }).join(" ");
+          if(cd && /^[\d#]+$/.test(cd)) prev.docno += cd;
+          if(cx) prev.desc += " " + cx;
+          prev._y = k;
+        }
+      }
+    });
+  });
+  lines.forEach(function(l){ delete l._y; l.desc = l.desc.replace(/\s{2,}/g," ").trim(); });
+  return { header: header, totals: totals, lines: lines };
+}
+
+/* validation against the bank's own printed figures */
+function validateStatement(parsed){
+  var errs = [];
+  if(!parsed.header) errs.push("no header row (period / opening / closing) found");
+  if(!parsed.lines.length) errs.push("no transaction lines found");
+  if(errs.length) return errs;
+  var sd=0, sc=0, nd=0, nc=0;
+  parsed.lines.forEach(function(l){ sd+=l.debit; sc+=l.credit; if(l.debit>0)nd++; if(l.credit>0)nc++; });
+  var h = parsed.header;
+  if(Math.abs(h.opening + sc - sd - h.closing) > 0.01)
+    errs.push("balance tie-out failed: "+fmt2(h.opening)+" + "+fmt2(sc)+" − "+fmt2(sd)+" ≠ "+fmt2(h.closing));
+  var t = parsed.totals;
+  if(t){
+    if(Math.abs(sd - t.debit) > 0.01) errs.push("debit total differs from bank's own figure ("+fmt2(t.debit)+")");
+    if(Math.abs(sc - t.credit) > 0.01) errs.push("credit total differs from bank's own figure ("+fmt2(t.credit)+")");
+    if(t.nDebit!=null && (nd !== t.nDebit || nc !== t.nCredit)) errs.push("movement count differs from bank's own figure");
+  }
+  parsed._sums = { sd: sd, sc: sc, nd: nd, nc: nc };
+  return errs;
+}
+
+/* ================= classification ================= */
+function classifyLine(l){
+  var d = normKey(l.desc);
+  if(l.credit > 0){
+    if(/WEBSALARY|SALARY/.test(d)) return "salary";
+    if(/CASHADVANCE/.test(d)) return "adv-in";
+    if(/DBCRTODIFFERENT|DIFFERENTDB|OWNACCOUNT/.test(d)) return "internal";
+    return "credit";
+  }
+  if(/CREDITCARDPAYMENT/.test(d)) return "cardpay";
+  if(/MATURINGLOAN|LOANINSTAL|LOANINSURANCE/.test(d)) return "loan";
+  if(/ATMCASH|CASHWITHDRAWAL|ATMWDL|ATM /.test(d)) return "withdrawal";
+  if(/DBCRTODIFFERENT|DIFFERENTDB|OWNACCOUNT/.test(d)) return "internal";
+  if(/COMMISSION|CHARGE|FEE/.test(d)) return "fee";
+  if(/WUTRANSFER|FAWRAN|FUNDTRANSFER|TRANSFER/.test(d)) return "transfer";
+  return "other";
+}
+var CLS_LABEL = { salary:"salary", "adv-in":"cash advance in", internal:"internal", cardpay:"card settlement",
+  loan:"loan payment", withdrawal:"cash withdrawal", fee:"bank fee", transfer:"transfer", credit:"credit", other:"—" };
+
+function cleanPayee(desc){
+  /* Doha descriptions look like "E-LOCAL FUND TRANSFER - LFT – MBL TO |YAHYA CHAKER ||QA69…":
+     the actual counterparty sits after the first pipe. */
+  var parts = desc.split("|").map(function(s){ return s.trim(); }).filter(Boolean);
+  var d = parts.length > 1 ? parts[1] : parts[0];
+  d = d.replace(/^(E-LOCAL FUND TRANSFER|WU TRANSFER|COMMISSION \/ OUTWARD TRANSFERS|DB\/CR TO DIFFERENT DB ACCOUNTS|TRANSFER FROM CREDIT CARD TO AN ACCOUNT|WEB SALARY|CREDIT CARD PAYMENT \(M\.D\)|MATURING LOAN INSTALLEMENTS|LOAN INSURANCE COMMISSION)\s*[-–—]?\s*/i, "");
+  d = d.replace(/^C\/O\s*/i,"").replace(/\s*[-–—]\s*(LFT|MBL|MB|TO)\s*$/i, "").replace(/#\w+$/,"").trim();
+  return d || desc.split("|")[0].trim();
+}
+function guessCategory(l){
+  var cls = l.cls || classifyLine(l);
+  if(cls === "fee") return "Bank fees & charges";
+  if(cls === "salary") return "Salary";
+  if(cls === "transfer"){ return /WU|FAWRAN/i.test(l.desc) ? "Family & remittances" : "Other"; }
+  if(l.credit > 0) return "Other income";
+  return "Other";
+}
+
+/* ================= cards registry (shared with the Card Desk) ================= */
+function loadCardsLocal(){
+  try{ var r = JSON.parse(localStorage.getItem(LS_CARDS)); if(r && r.cards) return r.cards; }catch(e){}
+  return [];
+}
+function cardName(id){
+  var c = STORE.cards.filter(function(c){ return c.id===id; })[0];
+  return c ? c.name + (c.last4 ? " ••••"+c.last4 : "") : "Card";
+}
+
+
+/* ================= entries ================= */
+var editingId = null, entryType = "expense";
+
+function addEntry(e){
+  /* file the entry under the month of its own date, not the month on screen */
+  var mk = monthOf(e.date);
+  if(mk !== STORE.curMonth){ STORE.curMonth = mk; }
+  var m = ensureMonth(mk);
+  e.id = e.id || uid("e");
+  e.source = e.source || "manual";
+  e.stmtLineId = e.stmtLineId || null;
+  m.entries.push(e);
+  touch(); persist(); renderAll();
+}
+function removeEntry(id){
+  var m = M();
+  var i = m.entries.findIndex(function(x){ return x.id===id; });
+  if(i<0) return;
+  var e = m.entries[i];
+  if(e.stmtLineId && m.stmt){
+    m.stmt.lines.forEach(function(l){ if(l.id===e.stmtLineId){ l.status="pending"; l.entryId=null; } });
+  }
+  m.entries.splice(i,1);
+  touch(); persist(); renderAll();
+}
+
+/* ================= reconciliation ================= */
+function monthEntries(){ return M().entries; }
+
+function candidatesFor(line){
+  var isDebit = line.debit > 0;
+  var amt = isDebit ? line.debit : line.credit;
+  return monthEntries().filter(function(e){
+    if(e.stmtLineId) return false;
+    if(isDebit && e.type !== "expense") return false;
+    if(!isDebit && e.type !== "income") return false;
+    if(isDebit && e.method === "cash") return false;         /* cash never hits the bank statement */
+    if(Math.abs(e.amount - amt) > 0.005) return false;
+    var dd = Math.abs(daysBetween(e.date, line.date));
+    return dd <= 3;
+  });
+}
+function fuzzyOk(a, b){
+  var x = normKey(a), y = normKey(b);
+  if(!x || !y) return false;
+  return x.indexOf(y) >= 0 || y.indexOf(x) >= 0;
+}
+
+/* auto-resolve what the bank's own words make unambiguous */
+function autoResolve(stmt){
+  stmt.lines.forEach(function(l){
+    if(l.status !== "pending") return;
+    l.cls = classifyLine(l);
+    if(l.cls === "cardpay" || l.cls === "loan" || l.cls === "withdrawal" || l.cls === "internal" || l.cls === "adv-in"){
+      l.status = "auto";
+      return;
+    }
+    var cands = candidatesFor(l);
+    if(cands.length === 1 && (fuzzyOk(cands[0].payee, cleanPayee(l.desc)) || cands.length === 1)){
+      cands[0].stmtLineId = l.id;
+      l.status = "matched"; l.entryId = cands[0].id;
+    }
+  });
+}
+
+/* card settlement cross-check against Card Desk data (same browser / cloud) */
+function cardDeskPayableNear(line){
+  try{
+    var cs = JSON.parse(localStorage.getItem(LS_CARDS));
+    if(!cs || !cs.by) return null;
+    var best = null;
+    Object.keys(cs.by).forEach(function(cid){
+      (cs.by[cid].statements || []).forEach(function(st){
+        if(!st.header || !st.header.dueDate) return;
+        var dd = Math.abs(daysBetween(isoFromDmy(st.header.dueDate), line.date));
+        if(dd <= 5){
+          var payable = Math.abs(st.header.minDue || ((st.spend||0) - (st.credits||0)));
+          var nm = (cs.cards.filter(function(c){return c.id===cid;})[0] || {}).name || "Card";
+          if(!best || dd < best.dd) best = { dd: dd, payable: payable, name: nm, stmtDate: st.header.stmtDate };
+        }
+      });
+    });
+    return best;
+  }catch(e){ return null; }
+}
+
+/* ================= rendering ================= */
+function renderKpis(){
+  var m = M();
+  var inc=0, exp=0, cash=0, transfer=0, card=0;
+  m.entries.forEach(function(e){
+    if(e.type==="income"){ inc += e.amount; return; }
+    exp += e.amount;
+    if(e.method==="cash") cash += e.amount;
+    else if(e.method==="transfer") transfer += e.amount;
+    else card += e.amount;
+  });
+  var kpis = [
+    ["Income in", fmt(inc), "good", m.entries.filter(function(e){return e.type==="income";}).length + " records"],
+    ["Expenses out", fmt(exp), "bad", m.entries.filter(function(e){return e.type==="expense";}).length + " records"],
+    ["Net", (inc-exp>=0?"+":"−") + fmt2(Math.abs(inc-exp)).replace(/^/,"") + " QAR", inc-exp>=0 ? "good" : "hot", "income minus expenses"],
+    ["Cash · transfer · card", fmt(cash).replace(" QAR","") + " · " + fmt(transfer).replace(" QAR","") + " · " + fmt(card).replace(" QAR",""), "", "where it left from"]
+  ];
+  var kb = document.getElementById("m-kpis"); kb.innerHTML="";
+  kpis.forEach(function(k){
+    var d = el("div","kpi");
+    d.appendChild(el("div","lab", k[0]));
+    d.appendChild(el("div","val "+k[2], esc(k[1])));
+    d.appendChild(el("div","sub", esc(k[3])));
+    kb.appendChild(d);
+  });
+}
+
+function renderEntries(){
+  var m = M();
+  var box = document.getElementById("m-entries"); box.innerHTML="";
+  if(!m.entries.length){
+    box.appendChild(el("div","hint","Nothing recorded yet this month. Add above as you spend."));
+    return;
+  }
+  var byDay = {};
+  m.entries.forEach(function(e){ (byDay[e.date] = byDay[e.date] || []).push(e); });
+  Object.keys(byDay).sort().reverse().forEach(function(day){
+    var g = el("div","daygroup");
+    var tot = byDay[day].reduce(function(a,e){ return a + (e.type==="expense"? -e.amount : e.amount); }, 0);
+    var head = el("div","dhead");
+    head.appendChild(el("span",null, fmtIso(day)));
+    head.appendChild(el("span",null, (tot>=0?"+":"−") + fmt2(Math.abs(tot)) + " QAR"));
+    g.appendChild(head);
+    var tb = el("table","tx"); var body = el("tbody");
+    byDay[day].forEach(function(e){
+      var tr = el("tr"); if(e.type==="income") tr.className="e-inc";
+      var mtag = e.type==="income" ? '<span class="tagc inc">in</span>'
+        : e.method==="cash" ? '<span class="tagc m-cash">cash</span>'
+        : e.method==="transfer" ? '<span class="tagc m-transfer">transfer</span>'
+        : '<span class="tagc m-card">'+esc(cardName(e.method.slice(5)))+"</span>";
+      tr.appendChild(el("td",null, '<span class="e-edit" data-e="'+e.id+'">'+esc(e.payee||"—")+"</span>" + (e.recurring?' <span class="tagc">↻</span>':'')));
+      tr.appendChild(el("td",null, '<span class="tagc">'+esc(e.category)+"</span>"));
+      tr.appendChild(el("td",null, mtag + (e.source==="import"?' <span class="tagc">bank</span>':'')));
+      tr.appendChild(el("td","r mono", (e.type==="expense"?"−":"+") + fmt2(e.amount)));
+      var x = el("td","r"); var xs = el("span","e-x","×"); xs.title="Delete";
+      xs.onclick = function(){ if(confirm("Delete this entry?")) removeEntry(e.id); };
+      x.appendChild(xs); tr.appendChild(x);
+      body.appendChild(tr);
+    });
+    tb.appendChild(body); g.appendChild(tb); box.appendChild(g);
+  });
+  box.querySelectorAll(".e-edit").forEach(function(s){
+    s.onclick = function(){ startEdit(s.getAttribute("data-e")); };
+  });
+}
+
+function startEdit(id){
+  var e = M().entries.filter(function(x){ return x.id===id; })[0];
+  if(!e) return;
+  editingId = id;
+  setType(e.type);
+  document.getElementById("f-date").value = e.date;
+  document.getElementById("f-amt").value = e.amount;
+  document.getElementById("f-method").value = e.method;
+  document.getElementById("f-cat").value = e.category;
+  document.getElementById("f-payee").value = e.payee || "";
+  document.getElementById("f-note").value = e.note || "";
+  document.getElementById("f-recur").checked = !!e.recurring;
+  document.getElementById("f-add").textContent = "Save changes";
+  document.getElementById("f-editing").classList.remove("hidden");
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+function cancelEdit(){
+  editingId = null;
+  document.getElementById("f-add").textContent = "Add to the book";
+  document.getElementById("f-editing").classList.add("hidden");
+}
+
+/* ================= month nav / status ================= */
+function renderMonthHead(){
+  document.getElementById("m-label").textContent = monthLabel(STORE.curMonth);
+  var m = M(), chip = el("span");
+  if(m.closed){ chip.className="chip closed"; chip.textContent="Closed ✓"; }
+  else if(m.stmt){ chip.className="chip recon"; chip.textContent="Reconciling"; }
+  else { chip.className="chip"; chip.textContent="Open"; }
+  var ms = document.getElementById("m-status"); ms.innerHTML=""; ms.appendChild(chip);
+}
+function shiftMonth(dir){
+  var y = +STORE.curMonth.slice(0,4), mo = +STORE.curMonth.slice(5,7) + dir;
+  if(mo<1){ mo=12; y--; } if(mo>12){ mo=1; y++; }
+  STORE.curMonth = y + "-" + String(mo).padStart(2,"0");
+  ensureMonth(STORE.curMonth);
+  persist(); renderAll();
+}
+
+/* ================= wallet ================= */
+function prevMonth(m){
+  var y=+m.slice(0,4), mo=+m.slice(5,7)-1; if(mo<1){mo=12;y--;}
+  return y+"-"+String(mo).padStart(2,"0");
+}
+function walletNumbers(){
+  var m = M();
+  var pm = STORE.months[prevMonth(STORE.curMonth)];
+  var opening = m.walletOpening != null ? m.walletOpening : (pm && pm.closed && pm.walletCount != null ? pm.walletCount : 0);
+  var atm = m.stmt ? m.stmt.lines.filter(function(l){ return l.cls==="withdrawal" || classifyLine(l)==="withdrawal"; }).reduce(function(a,l){ return a+l.debit; },0) : 0;
+  var spent = m.entries.filter(function(e){ return e.type==="expense" && e.method==="cash"; }).reduce(function(a,e){ return a+e.amount; },0);
+  return { opening: opening, atm: atm, spent: spent, expect: opening + atm - spent };
+}
+function renderWallet(){
+  var w = walletNumbers(), m = M();
+  document.getElementById("w-open").textContent = fmt2(w.opening);
+  document.getElementById("w-atm").textContent = m.stmt ? fmt2(w.atm) : "—";
+  document.getElementById("w-spent").textContent = fmt2(w.spent);
+  document.getElementById("w-expect").textContent = m.stmt ? fmt2(w.expect) : "—";
+  var ci = document.getElementById("w-count");
+  if(document.activeElement !== ci) ci.value = m.walletCount != null ? m.walletCount : "";
+  var N = document.getElementById("w-note"); N.innerHTML="";
+  if(!m.stmt){ N.appendChild(el("div","hint","Upload the month’s statement to activate the wallet check (ATM withdrawals come from it).")); return; }
+  if(m.walletCount == null){ N.appendChild(el("div","hint","Count the physical cash in your wallet and enter it above.")); return; }
+  var diff = m.walletCount - w.expect;
+  var n;
+  if(Math.abs(diff) < 1){
+    n = el("div","note good"); n.appendChild(el("div","note-t","Wallet ties out ✓ — every rial of cash is accounted for."));
+  } else if(diff < 0){
+    n = el("div","note warn"); n.appendChild(el("div","note-t",fmt2(-diff)+" QAR of cash is unaccounted for."));
+    n.appendChild(el("div","note-x","You hold less cash than the book expects — there are cash expenses you didn’t record. Add them above, then re-count."));
+  } else {
+    n = el("div","note warn"); n.appendChild(el("div","note-t",fmt2(diff)+" QAR more cash than expected."));
+    n.appendChild(el("div","note-x","Either a withdrawal wasn’t in this statement, or a recorded cash expense wasn’t actually paid in cash."));
+  }
+  N.appendChild(n);
+}
+
+/* ================= statement panel ================= */
+function renderStatement(){
+  var m = M(), stmt = m.stmt;
+  var info = document.getElementById("s-info"), q = document.getElementById("s-queues"), cl = document.getElementById("s-close");
+  var badge = document.getElementById("s-badge");
+  info.innerHTML=""; q.innerHTML=""; cl.innerHTML=""; badge.innerHTML="";
+  if(!stmt){
+    cl.appendChild(el("div","hint","No statement uploaded for "+monthLabel(STORE.curMonth)+" yet."));
+    return;
+  }
+  badge.innerHTML = '<span class="chip closed">ties out ✓</span>' + (stmt.hasPdf ? ' <span class="chip">pdf archived</span>' : '');
+
+  /* info strip */
+  var d = el("div","note");
+  d.appendChild(el("div","note-t",
+    "Statement " + fmtDmy(stmt.header.from) + " → " + fmtDmy(stmt.header.to) +
+    " · " + stmt.lines.length + " movements · opening " + fmt2(stmt.header.opening) + " → closing " + fmt2(stmt.header.closing) + " QAR"));
+  d.appendChild(el("div","note-x","Parser verified against the bank’s own totals: debits " + fmt2(stmt.sums.sd) + " (" + stmt.sums.nd + "), credits " + fmt2(stmt.sums.sc) + " (" + stmt.sums.nc + ")."));
+  info.appendChild(d);
+
+  /* partition lines */
+  var auto = [], review = [], missing = [];
+  stmt.lines.forEach(function(l){
+    if(l.status === "auto" || l.status === "matched" || l.status === "internal" || l.status === "ignored" || l.status === "income") auto.push(l);
+    else if(l.status === "pending-new") missing.push(l);
+    else {
+      var cands = candidatesFor(l);
+      if(cands.length) review.push({ line: l, cands: cands });
+      else missing.push(l);
+    }
+  });
+
+  /* special notes for auto-resolved lines */
+  auto.forEach(function(l){
+    if(l.cls === "cardpay"){
+      var cc = cardDeskPayableNear(l);
+      var n = el("div","note "+(cc && Math.abs(cc.payable - l.debit) < 0.01 ? "good" : "warn"));
+      n.appendChild(el("div","note-t","Card settlement: " + fmt2(l.debit) + " QAR on " + fmtDmy(l.date)));
+      n.appendChild(el("div","note-x", cc
+        ? (Math.abs(cc.payable - l.debit) < 0.01
+            ? "Matches the Card Desk payable for " + esc(cc.name) + " (statement " + fmtDmy(cc.stmtDate) + ") ✓ — the card is exactly as settled as the desk says."
+            : "Card Desk shows a payable of " + fmt2(cc.payable) + " QAR for " + esc(cc.name) + " — " + fmt2(Math.abs(cc.payable - l.debit)) + " QAR difference. Check which is right.")
+        : "No matching card statement on the Card Desk — upload it there so this settlement can be cross-checked."));
+      info.appendChild(n);
+    }
+    if(l.cls === "adv-in"){
+      var n2 = el("div","note bad");
+      n2.appendChild(el("div","note-t","Cash advance into this account: " + fmt2(l.credit) + " QAR on " + fmtDmy(l.date)));
+      n2.appendChild(el("div","note-x","Money moved from the credit card to the bank account — that’s a cash advance: fee on day one, no grace period. The Card Desk flags the matching advance on the card statement. Rule stands: the card is never an ATM."));
+      info.appendChild(n2);
+    }
+  });
+
+  /* group: review (has candidates) */
+  if(review.length){
+    var dr = el("details","recon"); dr.open = true;
+    dr.appendChild(el("summary",null,"Needs your eye — " + review.length + " possible match" + (review.length>1?"es":"")));
+    var body = el("div","body");
+    review.forEach(function(r){
+      var l = r.line, amt = l.debit>0 ? l.debit : l.credit;
+      var row = el("div","line");
+      row.appendChild(el("span","l-date", l.date.slice(0,5)));
+      row.appendChild(el("span","l-desc", esc(cleanPayee(l.desc)) + ' <span class="l-cls">' + esc(CLS_LABEL[l.cls]||"—") + "</span>"));
+      row.appendChild(el("span","l-amt "+(l.debit>0?"dr":"cr"), (l.debit>0?"−":"+")+fmt2(amt)));
+      var sel = el("select");
+      r.cands.forEach(function(c){
+        var o = el("option",null, esc(c.payee||c.category) + " · " + c.date.slice(5) + " · " + fmt2(c.amount));
+        o.value = c.id; sel.appendChild(o);
+      });
+      row.appendChild(sel);
+      var bM = el("button","btn small primary","Match");
+      bM.onclick = function(){
+        var e = monthEntries().filter(function(x){ return x.id===sel.value; })[0];
+        if(!e) return;
+        e.stmtLineId = l.id; l.status = "matched"; l.entryId = e.id;
+        touch(); persist(); renderAll();
+      };
+      row.appendChild(bM);
+      var bN = el("button","btn small","Not it");
+      bN.onclick = function(){ l.status = "pending-new"; moveToMissing(l); };
+      row.appendChild(bN);
+      body.appendChild(row);
+    });
+    dr.appendChild(body); q.appendChild(dr);
+  }
+
+  /* group: missing from book */
+  if(missing.length){
+    var dm = el("details","recon"); dm.open = true;
+    dm.appendChild(el("summary",null,"On the statement but not in your book — " + missing.length + " line" + (missing.length>1?"s":"")));
+    var bm = el("div","body");
+    missing.forEach(function(l){ bm.appendChild(missingRow(l)); });
+    dm.appendChild(bm); q.appendChild(dm);
+  }
+
+  /* group: auto-resolved (collapsed) */
+  if(auto.length){
+    var da = el("details","recon");
+    da.appendChild(el("summary",null,"Settled automatically — " + auto.length + " line" + (auto.length>1?"s":"") + " (matched, internal, loan, card settlement)"));
+    var ba = el("div","body");
+    auto.forEach(function(l){
+      var amt = l.debit>0 ? l.debit : l.credit;
+      var row = el("div","line");
+      row.appendChild(el("span","l-date", l.date.slice(0,5)));
+      var lab = l.status === "matched" ? "matched" : (CLS_LABEL[l.cls] || l.status);
+      row.appendChild(el("span","l-desc", esc(cleanPayee(l.desc)) + ' <span class="l-cls">' + esc(lab) + "</span>"));
+      row.appendChild(el("span","l-amt "+(l.debit>0?"dr":"cr"), (l.debit>0?"−":"+")+fmt2(amt)));
+      if(l.status === "ignored"){
+        var un = el("button","btn small","Restore");
+        un.onclick = function(){ l.status="pending"; l.entryId=null; touch(); persist(); renderAll(); };
+        row.appendChild(un);
+      }
+      ba.appendChild(row);
+    });
+    da.appendChild(ba); q.appendChild(da);
+  }
+
+  renderClose();
+}
+function moveToMissing(l){ /* "Not it" — treat as unresolved-new */ touch(); persist(); renderAll(); }
+
+function missingRow(l){
+  var amt = l.debit>0 ? l.debit : l.credit;
+  var row = el("div","line");
+  row.appendChild(el("span","l-date", l.date.slice(0,5)));
+  row.appendChild(el("span","l-desc", esc(cleanPayee(l.desc)) + ' <span class="l-cls">' + esc(CLS_LABEL[l.cls]||"—") + "</span>"));
+  row.appendChild(el("span","l-amt "+(l.debit>0?"dr":"cr"), (l.debit>0?"−":"+")+fmt2(amt)));
+  var sel = el("select");
+  (l.debit>0 ? EXP_CATS : INC_CATS).forEach(function(c){
+    var o = el("option",null,c); o.value=c;
+    if(c === guessCategory(l)) o.selected = true;
+    sel.appendChild(o);
+  });
+  row.appendChild(sel);
+  if(l.debit > 0){
+    var bAdd = el("button","btn small primary","Add to book");
+    bAdd.onclick = function(){
+      var e = { date: isoFromDmy(l.date), type: "expense", amount: l.debit, method: "transfer",
+                category: sel.value, payee: cleanPayee(l.desc), note: "", recurring: false,
+                source: "import", stmtLineId: l.id };
+      addEntrySilent(e);
+      l.status = "matched"; l.entryId = e.id;
+      touch(); persist(); renderAll();
+    };
+    row.appendChild(bAdd);
+    var bInt = el("button","btn small","Internal");
+    bInt.onclick = function(){ l.status="internal"; touch(); persist(); renderAll(); };
+    row.appendChild(bInt);
+  } else {
+    var bInc = el("button","btn small primary", l.cls==="salary" ? "Confirm salary" : "Confirm income");
+    bInc.onclick = function(){
+      var e = { date: isoFromDmy(l.date), type: "income", amount: l.credit, method: "transfer",
+                category: sel.value, payee: cleanPayee(l.desc), note: "", recurring: l.cls==="salary",
+                source: "import", stmtLineId: l.id };
+      addEntrySilent(e);
+      l.status = "income"; l.entryId = e.id;
+      touch(); persist(); renderAll();
+    };
+    row.appendChild(bInc);
+    var bInt2 = el("button","btn small","Internal");
+    bInt2.onclick = function(){ l.status="internal"; touch(); persist(); renderAll(); };
+    row.appendChild(bInt2);
+  }
+  var bIg = el("button","btn small","Ignore");
+  bIg.onclick = function(){ l.status="ignored"; touch(); persist(); renderAll(); };
+  row.appendChild(bIg);
+  return row;
+}
+function addEntrySilent(e){
+  var m = M();
+  e.id = uid("e");
+  m.entries.push(e);
+}
+
+/* ================= month close ================= */
+function pendingLines(){
+  var m = M(); if(!m.stmt) return [];
+  return m.stmt.lines.filter(function(l){
+    if(l.status === "pending" || l.status === "pending-new") return true;
+    return false;
+  });
+}
+function renderClose(){
+  var m = M(), cl = document.getElementById("s-close"); cl.innerHTML="";
+  if(!m.stmt) return;
+  if(m.closed){
+    var d = el("div","note good");
+    d.appendChild(el("div","note-t","Month closed ✓ — " + new Date(m.closedAt).toLocaleDateString("en-GB",{day:"numeric",month:"short"})));
+    d.appendChild(el("div","note-x","Every bank line is explained, income is confirmed, the wallet ties. This month is proven."));
+    cl.appendChild(d);
+    var un = el("button","btn small","Reopen month");
+    un.onclick = function(){ if(confirm("Reopen "+monthLabel(STORE.curMonth)+"?")){ m.closed=false; m.closedAt=null; touch(); persist(); renderAll(); } };
+    cl.appendChild(un);
+    return;
+  }
+  var reqs = [];
+  var pend = pendingLines().length;
+  reqs.push([pend === 0, pend === 0 ? "Every statement line is resolved" : pend + " statement line" + (pend>1?"s":"") + " still unresolved"]);
+  var hasIncome = m.stmt.lines.some(function(l){ return l.status === "income"; }) || m.entries.some(function(e){ return e.type==="income" && e.category==="Salary"; });
+  var sawSalary = m.stmt.lines.some(function(l){ return l.cls === "salary"; });
+  reqs.push([hasIncome || !sawSalary, sawSalary ? (hasIncome ? "Salary confirmed" : "Salary arrived but isn’t confirmed yet") : "No salary line on this statement — nothing to confirm"]);
+  var w = walletNumbers();
+  var needCount = m.entries.some(function(e){ return e.type==="expense" && e.method==="cash"; });
+  reqs.push([!needCount || m.walletCount != null, needCount ? (m.walletCount != null ? "Cash counted and entered" : "Cash expenses exist — count your physical cash") : "No cash spending — wallet check skipped"]);
+  var ok = reqs.every(function(r){ return r[0]; });
+  var d2 = el("div","note "+(ok?"good":"warn"));
+  d2.appendChild(el("div","note-t", ok ? "Ready to close the month" : "Before this month can close:"));
+  reqs.forEach(function(r){
+    var x = el("div","note-x", (r[0] ? "✓ " : "○ ") + r[1]);
+    d2.appendChild(x);
+  });
+  cl.appendChild(d2);
+  var b = el("button","btn primary","Close " + monthLabel(STORE.curMonth));
+  b.disabled = !ok;
+  b.onclick = function(){
+    m.closed = true; m.closedAt = Date.now();
+    if(m.walletCount != null) m.walletOpening = null; /* next month inherits counted */
+    touch(); persist(); renderAll();
+  };
+  cl.appendChild(b);
+}
+
+/* ================= verdict (actual vs plan) ================= */
+function renderVerdict(){
+  var V = document.getElementById("v-body"); V.innerHTML="";
+  var m = M();
+  var byCat = {};
+  m.entries.forEach(function(e){ if(e.type==="expense") byCat[e.category]=(byCat[e.category]||0)+e.amount; });
+  var actual = Object.keys(byCat).reduce(function(a,c){ return a+byCat[c]; },0);
+  var income = m.entries.filter(function(e){ return e.type==="income"; }).reduce(function(a,e){ return a+e.amount; },0);
+
+  var plan = STORE.plan;
+  if(!plan){
+    V.appendChild(el("div","hint","Sign in to load The Ledger’s plan and see actual vs plan here. Actuals so far: " + fmt(actual) + " spent, " + fmt(income) + " in."));
+    return;
+  }
+  var planExp = (plan.exp||[]).reduce(function(a,r){ return a + (+r.amt||0); },0);
+  var planInc = (plan.income||[]).reduce(function(a,r){ return a + (+r.amt||0); },0);
+
+  var tb = el("table","vt");
+  tb.innerHTML = "<thead><tr><th>Category</th><th class='r'>Actual</th><th class='r'>Plan</th><th class='r'>Δ</th></tr></thead>";
+  var body = el("tbody");
+  var usedPlan = {};
+  Object.keys(byCat).sort(function(a,b){ return byCat[b]-byCat[a]; }).forEach(function(c){
+    var pr = (plan.exp||[]).filter(function(r){ return fuzzyOk(r.name, c) || fuzzyOk(c, r.name); })[0];
+    var pAmt = pr ? +pr.amt||0 : null;
+    if(pr) usedPlan[pr.name] = true;
+    var tr = el("tr");
+    tr.appendChild(el("td",null,esc(c)));
+    tr.appendChild(el("td","r",fmt2(byCat[c])));
+    tr.appendChild(el("td","r", pAmt!=null ? fmt2(pAmt) : "—"));
+    var dcell;
+    if(pAmt!=null){
+      var d = byCat[c]-pAmt;
+      dcell = el("td","r delta "+(Math.abs(d)<1?"flat":(d>0?"up":"down")), (d>0?"+":d<0?"−":"±")+Math.abs(d).toLocaleString("en-US",{maximumFractionDigits:0}));
+    } else dcell = el("td","r delta flat","—");
+    tr.appendChild(dcell);
+    body.appendChild(tr);
+  });
+  (plan.exp||[]).forEach(function(r){
+    if(usedPlan[r.name] || !+r.amt) return;
+    var tr = el("tr");
+    tr.appendChild(el("td",null,esc(r.name)+" (planned only)"));
+    tr.appendChild(el("td","r","0.00"));
+    tr.appendChild(el("td","r",fmt2(+r.amt)));
+    tr.appendChild(el("td","r delta down","−"+(+r.amt).toLocaleString("en-US",{maximumFractionDigits:0})));
+    body.appendChild(tr);
+  });
+  var trT = el("tr");
+  trT.appendChild(el("td",null,"<b>Total</b>"));
+  trT.appendChild(el("td","r","<b>"+fmt2(actual)+"</b>"));
+  trT.appendChild(el("td","r","<b>"+fmt2(planExp)+"</b>"));
+  var dt = actual - planExp;
+  trT.appendChild(el("td","r delta "+(dt>0?"up":"down"), (dt>0?"+":"−")+Math.abs(dt).toLocaleString("en-US",{maximumFractionDigits:0})));
+  body.appendChild(trT);
+  tb.appendChild(body);
+  V.appendChild(tb);
+
+  var n = el("div","note "+(actual<=planExp?"good":"bad")); n.style.marginTop="12px";
+  n.appendChild(el("div","note-t",
+    actual<=planExp
+      ? "Spending is inside the plan by " + fmt2(planExp-actual) + " QAR."
+      : "Spending is over the plan by " + fmt2(actual-planExp) + " QAR."));
+  var incNote = planInc ? " Income recorded: " + fmt2(income) + " vs expected " + fmt2(planInc) + "." : "";
+  n.appendChild(el("div","note-x","Plan figures come from The Ledger’s monthly expenses." + incNote));
+  V.appendChild(n);
+}
+
+/* ================= form wiring ================= */
+function setType(t){
+  entryType = t;
+  document.getElementById("t-exp").classList.toggle("on", t==="expense");
+  document.getElementById("t-inc").classList.toggle("on", t==="income");
+  var sel = document.getElementById("f-cat"); sel.innerHTML="";
+  (t==="expense" ? EXP_CATS : INC_CATS).forEach(function(c){ var o=el("option",null,c); o.value=c; sel.appendChild(o); });
+  document.getElementById("f-method").disabled = (t==="income");
+}
+function renderMethods(){
+  var sel = document.getElementById("f-method"); sel.innerHTML="";
+  [["cash","Cash"],["transfer","Bank transfer"]].forEach(function(p){ var o=el("option",null,p[1]); o.value=p[0]; sel.appendChild(o); });
+  STORE.cards.forEach(function(c){ var o=el("option",null,"Card — "+c.name+(c.last4?" ••••"+c.last4:"")); o.value="card:"+c.id; sel.appendChild(o); });
+}
+function submitEntry(){
+  var date = document.getElementById("f-date").value;
+  var amt = parseFloat(document.getElementById("f-amt").value);
+  if(!date || !(amt>0)){ alert("Date and a positive amount are needed."); return; }
+  var e = {
+    date: date, type: entryType, amount: amt,
+    method: entryType==="income" ? "transfer" : document.getElementById("f-method").value,
+    category: document.getElementById("f-cat").value,
+    payee: document.getElementById("f-payee").value.trim(),
+    note: document.getElementById("f-note").value.trim(),
+    recurring: document.getElementById("f-recur").checked
+  };
+  if(editingId){
+    var old = M().entries.filter(function(x){ return x.id===editingId; })[0];
+    if(old){ e.id = old.id; e.source = old.source; e.stmtLineId = old.stmtLineId;
+      M().entries[M().entries.indexOf(old)] = e; }
+    cancelEdit();
+    touch(); persist(); renderAll();
+  } else {
+    addEntry(e);
+  }
+  document.getElementById("f-amt").value=""; document.getElementById("f-payee").value=""; document.getElementById("f-note").value="";
+  document.getElementById("f-recur").checked=false;
+  document.getElementById("f-amt").focus();
+}
+
+/* ================= upload ================= */
+function handleFile(file){
+  if(!file) return;
+  var err = document.getElementById("parse-err"); err.innerHTML="";
+  var dropEl = document.getElementById("drop");
+  dropEl.querySelector(".big").textContent = "Reading " + file.name + "…";
+  readPdf(file).then(function(pages){
+    var parsed = parseAccountStatement(pages);
+    var errs = validateStatement(parsed);
+    if(errs.length) throw new Error("This PDF failed verification — " + errs[0] + ". Is it the Doha Bank account eStatement?");
+    var mk = monthOf(isoFromDmy(parsed.header.to));
+    if(mk !== STORE.curMonth){
+      STORE.curMonth = mk; ensureMonth(mk);
+    }
+    var m = M();
+    if(m.stmt && m.stmt.lines.some(function(l){ return l.status !== "pending"; })){
+      if(!confirm("A statement for " + monthLabel(mk) + " is already reconciled. Replace it? (Matched entries keep their links only if amounts/dates are unchanged.)")) {
+        dropEl.querySelector(".big").textContent = "Drop the account statement PDF here — or click to choose";
+        return;
+      }
+    }
+    parsed.lines.forEach(function(l){ l.cls = classifyLine(l); });
+    var stmt = {
+      header: parsed.header, sums: parsed._sums, lines: parsed.lines,
+      uploadedAt: Date.now(), hasPdf: false
+    };
+    m.stmt = stmt;
+    autoResolve(stmt);
+    touch();
+
+    /* archive: data always (if signed in), PDF if ticked */
+    if(LedgerCloud.user()){
+      var done = function(){
+        LedgerCloud.note("Statement saved to cloud ✓");
+      };
+      if(document.getElementById("s-pdf").checked){
+        file.arrayBuffer().then(function(buf){
+          var bin = "", bytes = new Uint8Array(buf);
+          for(var i=0; i<bytes.length; i+=8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i+8192));
+          stmt.hasPdf = true;
+          return LedgerCloud.putDoc("acct_stmt", mk, stmt, btoa(bin));
+        }).then(done).catch(function(e){ LedgerCloud.note("Saved locally — cloud failed", String(e.message||e)); });
+      } else {
+        LedgerCloud.putDoc("acct_stmt", mk, stmt).then(done).catch(function(){});
+      }
+    }
+    persist();
+    dropEl.querySelector(".big").textContent = "Drop the account statement PDF here — or click to choose";
+    renderAll();
+  }).catch(function(e){
+    dropEl.querySelector(".big").textContent = "Drop the account statement PDF here — or click to choose";
+    err.innerHTML = '<div class="note bad"><div class="note-t">Statement rejected</div><div class="note-x">'+esc(String(e.message||e))+"</div></div>";
+  });
+}
+
+/* ================= cloud merge on sign-in ================= */
+function cloudLoadAll(){
+  if(!LedgerCloud.user()) return;
+  /* cards registry (shared with Card Desk) */
+  LedgerCloud.getDoc("cards","default").then(function(d){
+    if(d && d.data && d.data.cards){
+      STORE.cards = d.data.cards;
+      try{ localStorage.setItem(LS_CARDS, JSON.stringify(Object.assign(JSON.parse(localStorage.getItem(LS_CARDS)||"{}"), {cards: d.data.cards}))); }catch(e){}
+      renderMethods();
+    } else if(STORE.cards.length){
+      LedgerCloud.putDoc("cards","default",{cards: STORE.cards}).catch(function(){});
+    }
+  }).catch(function(){});
+  /* daybook months */
+  LedgerCloud.listDocs("daybook").then(function(rows){
+    rows.forEach(function(r){
+      var local = STORE.months[r.ref];
+      if(!local || (r.data.updatedAt||0) > (local.updatedAt||0)){
+        STORE.months[r.ref] = Object.assign(ensureMonth(r.ref), r.data);
+      }
+    });
+    persistLocalOnly(); renderAll();
+  }).catch(function(){});
+  /* statements */
+  LedgerCloud.listDocs("acct_stmt").then(function(rows){
+    rows.forEach(function(r){
+      var m = ensureMonth(r.ref);
+      if(!m.stmt || (r.data.uploadedAt||0) > (m.stmt.uploadedAt||0)) m.stmt = r.data;
+      if(r.data && r.data.hasPdf) m.stmt.hasPdf = true;
+    });
+    persistLocalOnly(); renderAll();
+  }).catch(function(){});
+  /* plan from The Ledger */
+  LedgerCloud.getLedger().then(function(d){
+    var st = d && (d.state || d);
+    if(st){ STORE.plan = { exp: st.exp||[], oblig: st.oblig||[], income: st.income||[] }; persistLocalOnly(); renderVerdict(); }
+  }).catch(function(){});
+}
+function persistLocalOnly(){ try{ localStorage.setItem(LS, JSON.stringify(STORE)); }catch(e){} }
+
+/* ================= render all / boot ================= */
+function renderAll(){
+  renderMonthHead(); renderKpis(); renderEntries(); renderWallet(); renderStatement(); renderVerdict();
+}
+
+document.getElementById("t-exp").onclick = function(){ setType("expense"); };
+document.getElementById("t-inc").onclick = function(){ setType("income"); };
+document.getElementById("f-add").onclick = submitEntry;
+document.getElementById("f-cancel").onclick = cancelEdit;
+document.getElementById("f-amt").addEventListener("keydown", function(e){ if(e.key==="Enter") submitEntry(); });
+document.getElementById("f-payee").addEventListener("keydown", function(e){ if(e.key==="Enter") submitEntry(); });
+document.getElementById("m-prev").onclick = function(){ shiftMonth(-1); };
+document.getElementById("m-next").onclick = function(){ shiftMonth(1); };
+document.getElementById("w-count").addEventListener("input", function(){
+  var v = document.getElementById("w-count").value;
+  M().walletCount = v==="" ? null : parseFloat(v);
+  touch(); persist(); renderWallet(); renderClose();
+});
+
+var drop = document.getElementById("drop"), fileIn = document.getElementById("file");
+drop.onclick = function(){ fileIn.click(); };
+fileIn.onchange = function(){ handleFile(fileIn.files[0]); fileIn.value=""; };
+drop.ondragover = function(e){ e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = function(){ drop.classList.remove("over"); };
+drop.ondrop = function(e){ e.preventDefault(); drop.classList.remove("over"); handleFile(e.dataTransfer.files[0]); };
+
+/* boot */
+STORE.cards = loadCardsLocal();
+ensureMonth(STORE.curMonth);
+document.getElementById("f-date").value = today();
+setType("expense");
+renderMethods();
+renderAll();
+
+LedgerCloud.mount(document.getElementById("cloudbar"), {
+  onUser: function(u){ if(u) cloudLoadAll(); }
+});
+})();
+</script>
+
+</body>
+</html>
