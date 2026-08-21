@@ -15,6 +15,11 @@
     --good:#3d6b4f;
   }
   *{box-sizing:border-box;margin:0;padding:0}
+  .hidden{display:none!important}
+  .d-contents{display:contents}
+  .spacer{flex:1}
+  .mt-12{margin-top:12px}
+  .mb-22{margin-bottom:22px}
   body{background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:14.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
   .mono{font-family:'JetBrains Mono',monospace}
 
@@ -73,6 +78,7 @@
   .panel .hint{font-size:11.5px;color:var(--muted);margin:6px 0 10px}
   .row{display:grid;gap:6px;padding:8px 0;border-bottom:1px solid var(--rule);align-items:end}
   .row.cols-2{grid-template-columns:1fr 110px 24px}
+  .row.cols-2b{grid-template-columns:1fr 130px}
   .row.cols-4{grid-template-columns:1fr 92px 62px 92px 24px}
   .row label{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
   .row input{
@@ -104,8 +110,13 @@
   .chartbox .note{font-size:11px;color:var(--muted);margin-bottom:10px}
   canvas{width:100%;height:auto;display:block;cursor:crosshair}
   .legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
+  .legend.tight{margin:8px 0 2px}
   .legend span{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
   .legend i{display:inline-block;width:18px;height:3px}
+  .sw-debt{background:#a32c00}
+  .sw-inv{background:#3d6b4f}
+  .sw-cash{background:#d9a441}
+  .sw-nw{background:#4f483e}
 
   /* trajectory chart: header, pin, milestones, tooltip */
   .chart-hd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px 12px}
@@ -243,14 +254,14 @@
     <span class="dot"></span>
     <span class="status" id="cl-status">Local only — your data stays in this browser</span>
     <span class="who" id="cl-who"></span>
-    <span style="flex:1"></span>
-    <span id="cl-form" style="display:contents">
+    <span class="spacer"></span>
+    <span id="cl-form" class="d-contents">
       <input id="cl-email" type="email" placeholder="email" autocomplete="email">
       <input id="cl-pass" type="password" placeholder="password" autocomplete="current-password">
       <button id="cl-signin" class="primary">Sign in</button>
       <button id="cl-signup">Sign up</button>
     </span>
-    <button id="cl-signout" style="display:none">Sign out</button>
+    <button id="cl-signout" class="hidden">Sign out</button>
     <span class="err" id="cl-err"></span>
   </div>
 </div>
@@ -297,16 +308,16 @@
     <div class="panel" id="p-inv">
       <h2>Investing &amp; Cash</h2>
       <div class="hint">Your market engine: current invested balance, what you add monthly, and a long-run return assumption (be honest — 8% is a fair planning number, not a promise).</div>
-      <div class="row cols-2" style="grid-template-columns:1fr 130px">
+      <div class="row cols-2b">
         <div><label for="inv-bal">Already invested</label><input type="number" id="inv-bal" value="5000" min="0" step="100"></div>
         <div><label for="inv-ret">Return %/yr</label><input type="number" id="inv-ret" value="8" step="0.5"></div>
       </div>
-      <div class="row cols-2" style="grid-template-columns:1fr 130px">
+      <div class="row cols-2b">
         <div><label for="inv-month">Monthly to stocks</label><input type="number" id="inv-month" value="1000" min="0" step="25"></div>
         <div><label for="inv-extra">Extra to debt / month</label><input type="number" id="inv-extra" value="0" min="0" step="25"></div>
       </div>
-      <div class="hint" style="margin-top:12px">Your safety cushion: cash you hold today and the yield it earns (money-market ~3.6%). The unallocated monthly remainder accumulates here.</div>
-      <div class="row cols-2" style="grid-template-columns:1fr 130px">
+      <div class="hint mt-12">Your safety cushion: cash you hold today and the yield it earns (money-market ~3.6%). The unallocated monthly remainder accumulates here.</div>
+      <div class="row cols-2b">
         <div><label for="cash-bal">Cash buffer today</label><input type="number" id="cash-bal" value="3000" min="0" step="100"></div>
         <div><label for="cash-yield">Cash yield %/yr</label><input type="number" id="cash-yield" value="4" min="0" step="0.1"></div>
       </div>
@@ -318,7 +329,7 @@
     <button class="sheetbtn" id="open-sheet">▦ Open the Summary Sheet — analysis & recommendations</button>
     <div class="warn" id="warn"></div>
 
-    <div class="chartbox" style="margin-bottom:22px">
+    <div class="chartbox mb-22">
       <h3>Monthly Cash Flow</h3>
       <div class="note" id="flow-note">Where each month's income goes — enter your income to activate</div>
       <div class="flowbar" id="flowbar"></div>
@@ -348,10 +359,10 @@
       <div class="pin-stats" id="pin-stats"></div>
       <canvas id="chart" width="1040" height="640"></canvas>
       <div class="legend">
-        <span><i style="background:#a32c00"></i>Total debt</span>
-        <span><i style="background:#3d6b4f"></i>Stock investments</span>
-        <span><i style="background:#d9a441"></i>Cash savings</span>
-        <span><i style="background:#4f483e"></i>Net worth</span>
+        <span><i class="sw-debt"></i>Total debt</span>
+        <span><i class="sw-inv"></i>Stock investments</span>
+        <span><i class="sw-cash"></i>Cash savings</span>
+        <span><i class="sw-nw"></i>Net worth</span>
       </div>
       <table class="yrtable">
         <caption>Yearly summary</caption>
@@ -378,11 +389,11 @@
 
     <h3 class="sh-h">The trajectory</h3>
     <canvas id="sh-chart" width="900" height="420"></canvas>
-    <div class="legend" style="margin:8px 0 2px">
-      <span><i style="background:#a32c00"></i>Total debt</span>
-      <span><i style="background:#3d6b4f"></i>Stock investments</span>
-      <span><i style="background:#d9a441"></i>Cash savings</span>
-      <span><i style="background:#4f483e"></i>Net worth</span>
+    <div class="legend tight">
+      <span><i class="sw-debt"></i>Total debt</span>
+      <span><i class="sw-inv"></i>Stock investments</span>
+      <span><i class="sw-cash"></i>Cash savings</span>
+      <span><i class="sw-nw"></i>Net worth</span>
     </div>
 
     <h3 class="sh-h">The Analyst's Desk <span class="sh-sub">— automated read of your numbers, computed on this device</span></h3>
@@ -696,8 +707,8 @@
     });
   }
 
-  function ttRow(color, label, val){
-    return '<div class="tt-row"><span><i style="background:'+color+'"></i>'+label+'</span><span>'+val+'</span></div>';
+  function ttRow(swClass, label, val){
+    return '<div class="tt-row"><span><i class="'+swClass+'"></i>'+label+'</span><span>'+val+'</span></div>';
   }
 
   function attachHover(cv){
@@ -715,10 +726,10 @@
       drawCrosshair(cv, cs, idx);
       var p=cs.res.series[idx], nw=p.inv+p.cash-p.debt;
       var rows="";
-      if(showDebt) rows+=ttRow("#a32c00","Debt",fmt(p.debt));
-      if(showInv)  rows+=ttRow("#3d6b4f","Investments",fmt(p.inv));
-      if(showCash) rows+=ttRow("#d9a441","Cash",fmt(p.cash));
-      if(showNW)   rows+=ttRow("#4f483e","Net worth",fmt(nw));
+      if(showDebt) rows+=ttRow("sw-debt","Debt",fmt(p.debt));
+      if(showInv)  rows+=ttRow("sw-inv","Investments",fmt(p.inv));
+      if(showCash) rows+=ttRow("sw-cash","Cash",fmt(p.cash));
+      if(showNW)   rows+=ttRow("sw-nw","Net worth",fmt(nw));
       tt.innerHTML='<div class="tt-d">'+monthLabel(cs.res.start,p.m)+'</div>'+rows;
       var cssScale=rect.width/cv.width;
       var left=cv.offsetLeft + cs.X(idx)*cssScale;
@@ -903,8 +914,8 @@
   function clRender(){
     var on = !!CLOUD.user;
     document.querySelector(".cloudbar").classList.toggle("on", on);
-    document.getElementById("cl-form").style.display = on ? "none" : "contents";
-    document.getElementById("cl-signout").style.display = on ? "" : "none";
+    document.getElementById("cl-form").classList.toggle("hidden", on);
+    document.getElementById("cl-signout").classList.toggle("hidden", !on);
     document.getElementById("cl-who").textContent = on ? CLOUD.user.email : "";
   }
 
