@@ -359,7 +359,7 @@
 
 <footer>
   <div class="fineprint">
-    <b>How it reads.</b> Surplus = income − obligations − expenses − scheduled debt payments. Your "monthly to stocks" and "extra to debt" must fit inside that surplus; freed payments from finished debts roll into the next-highest-rate balance. Figures are planning projections, not guarantees.
+    <b>How it reads.</b> Surplus = income − obligations − expenses − scheduled debt payments. Your "monthly to stocks" and "extra to debt" must fit inside that surplus; freed payments from finished debts roll into the next-highest-rate balance, and once every debt is gone the whole freed amount flows into cash savings. Figures are planning projections, not guarantees.
     <b>Currency.</b> The selector changes display only — amounts are never converted between currencies; enter every figure in the same currency you pick.
     <b>Privacy.</b> Signed out, everything stays in this browser. Signed in, your numbers sync to your own private cloud account — readable only by you, protected by row-level security.
   </div>
@@ -507,10 +507,6 @@
     for(var m=1; m<=MAXM; m++){
       // investments grow + contribution (contribution continues even after debt-free)
       inv = inv*(1+rInv) + invAdd;
-      // cash savings: yield on positive balance + unallocated remainder (negative remainder draws cash down)
-      var remainingNow = freeCash - invAdd - extra0;
-      if (cash > 0) cash = cash*(1+rCash);
-      cash += remainingNow;
 
       // accrue interest
       debts.forEach(function(d){ if(d.bal>0){ var i=d.bal*d.apr/12; interest+=i; d.bal+=i; } });
@@ -531,6 +527,13 @@
         if(!target) break;
         var p=Math.min(pool, target.bal); target.bal-=p; pool-=p;
       }
+
+      // freed debt money (leftover on the payoff month, everything once debt-free) rolls into cash savings
+      var freed = active ? Math.max(0, pool) : minTotal + extra0;
+      // cash savings: yield on positive balance + unallocated remainder + freed debt money
+      var remainingNow = freeCash - invAdd - extra0 + freed;
+      if (cash > 0) cash = cash*(1+rCash);
+      cash += remainingNow;
 
       var totalDebt = debts.reduce(function(a,d){return a+Math.max(0,d.bal);},0);
       series.push({m:m, debt:totalDebt, inv:inv, cash:cash});
