@@ -122,6 +122,10 @@
     box-shadow:0 10px 34px rgba(58,52,44,.35);
   }
   .chartbox.is-pinned .yrtable{display:none}
+  @media(max-width:640px){
+    .chartbox.is-pinned{max-height:65vh;top:10px;right:8px;width:88vw}
+    .chartbox.is-pinned .note{display:none}
+  }
   .chart-placeholder{display:none}
   .pin-stats{display:none;gap:10px;flex-wrap:wrap;margin:10px 0 2px}
   .chartbox.is-pinned .pin-stats{display:flex}
@@ -598,24 +602,34 @@
     var W=cv.width, H=cv.height;
     ctx.clearRect(0,0,W,H);
     var s=res.series, n=s.length;
-    var maxV=1;
-    s.forEach(function(p){ maxV=Math.max(maxV, p.debt, p.inv, p.cash, Math.abs(p.inv+p.cash-p.debt)); });
+    // range covers the lowest excursion too (e.g. cash running negative during a shortfall) —
+    // otherwise those stretches draw below the axis and vanish off-canvas.
+    var maxV=1, minV=0;
+    s.forEach(function(p){
+      var nw=p.inv+p.cash-p.debt;
+      maxV=Math.max(maxV, p.debt, p.inv, p.cash, nw);
+      minV=Math.min(minV, p.debt, p.inv, p.cash, nw);
+    });
     maxV*=1.08;
+    if(minV<0) minV*=1.08;
+    var span=(maxV-minV)||1;
 
     var padL=82, padR=14, padT=14, padB=44;
     var X=function(i){ return padL + (W-padL-padR)*(i/(n-1||1)); };
-    var Y=function(v){ return padT + (H-padT-padB)*(1 - v/maxV); };
+    var Y=function(v){ return padT + (H-padT-padB)*(1 - (v-minV)/span); };
 
     // horizontal gridlines + y labels
     ctx.font="11px 'JetBrains Mono', monospace"; ctx.fillStyle="#8a7d6b"; ctx.strokeStyle="#d8cfc0"; ctx.lineWidth=1;
     for(var g=0; g<=4; g++){
-      var v=maxV*g/4, y=Y(v);
+      var v=minV + span*g/4, y=Y(v);
       ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
       ctx.textAlign="right"; ctx.fillText(fmtK(v), padL-8, y+4);
     }
-    // zero line for net worth reference
-    ctx.strokeStyle="#8a7d6b"; ctx.setLineDash([3,4]); ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(padL,Y(0)); ctx.lineTo(W-padR,Y(0)); ctx.stroke(); ctx.setLineDash([]);
+    // zero line, only meaningful as a separate reference when the range dips below it
+    if(minV<0){
+      ctx.strokeStyle="#8a7d6b"; ctx.setLineDash([3,4]); ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(padL,Y(0)); ctx.lineTo(W-padR,Y(0)); ctx.stroke(); ctx.setLineDash([]);
+    }
 
     // vertical gridlines + x labels (~6 ticks)
     ctx.textAlign="center";
