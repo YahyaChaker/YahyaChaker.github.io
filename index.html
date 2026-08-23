@@ -121,6 +121,7 @@
 
   /* trajectory chart: header, pin, milestones, tooltip */
   .chart-hd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px 12px}
+  .chart-hd-main{flex:1 1 240px;min-width:0}
   .pin-btn{
     flex:none;background:none;border:1px solid var(--ink);color:var(--ink-deep);
     font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
@@ -153,6 +154,7 @@
   .chart-tt .tt-d{font-weight:700;margin-bottom:4px;letter-spacing:.06em}
   .chart-tt .tt-row{display:flex;gap:14px;justify-content:space-between;align-items:center}
   .chart-tt .tt-row i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .chart-tt .tt-event{color:var(--accent-tint);font-weight:700;padding-bottom:4px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.2)}
   .warn{
     display:none;background:#fbe9e2;border:1px solid var(--accent);color:#a32c00;
     font-size:12.5px;padding:10px 14px;margin-bottom:18px;font-family:'JetBrains Mono',monospace;
@@ -362,7 +364,7 @@
 
     <div class="chartbox" id="traj-box">
       <div class="chart-hd">
-        <div>
+        <div class="chart-hd-main">
           <h3>Trajectory</h3>
           <div class="note" id="chart-note">Monthly simulation · click legend figure to toggle · hover for detail</div>
         </div>
@@ -568,9 +570,9 @@
     var invAdd = st.inv.month*scale, extra0 = st.inv.extra*scale;
 
     // one-time income/payments: lump sums that land in cash on a specific month (0 = this month)
-    var oneByM = {};
-    st.oneincome.forEach(function(o){ var m=Math.max(0,Math.round(o.month)); oneByM[m]=(oneByM[m]||0)+o.amt; });
-    st.onepay.forEach(function(o){ var m=Math.max(0,Math.round(o.month)); oneByM[m]=(oneByM[m]||0)-o.amt; });
+    var oneByM = {}, oneEvents = [];
+    st.oneincome.forEach(function(o){ var m=Math.max(0,Math.round(o.month)); oneByM[m]=(oneByM[m]||0)+o.amt; oneEvents.push({m:m, name:o.name||"One-time income", amt:o.amt, kind:"in"}); });
+    st.onepay.forEach(function(o){ var m=Math.max(0,Math.round(o.month)); oneByM[m]=(oneByM[m]||0)-o.amt; oneEvents.push({m:m, name:o.name||"One-time payment", amt:o.amt, kind:"out"}); });
 
     var inv = st.inv.bal, rInv = st.inv.ret/100/12;
     var cash = st.inv.cash + (oneByM[0]||0), rCash = st.inv.cashYield/100/12;
@@ -624,7 +626,8 @@
     return {series:series, warn:warn, interest:interest, debtFreeM:debtFreeM,
             zeroCross:zeroCross, invAtFree: debtFreeM!=null? series[Math.min(debtFreeM, series.length-1)].inv : null,
             start:start, freeCash:freeCash, minTotal:minTotal, invAdd:invAdd, extraUsed:extra0,
-            income:income, fixed:fixed, hasDebt: st.debt.concat(st.card).some(function(d){return d.bal>0;})};
+            income:income, fixed:fixed, hasDebt: st.debt.concat(st.card).some(function(d){return d.bal>0;}),
+            oneEvents:oneEvents};
   }
 
   /* ---------- chart ---------- */
@@ -708,6 +711,20 @@
     });
     ctx.font="11px 'JetBrains Mono', monospace";
 
+    // one-time income/payment markers — small triangles sitting on the cash line at their month
+    (res.oneEvents||[]).forEach(function(ev){
+      if(ev.m>=n) return;
+      var x=X(ev.m), yLine=Y(s[ev.m].cash), up=ev.kind==="in";
+      var y = up ? yLine-9 : yLine+9, size=5;
+      ctx.beginPath();
+      if(up){ ctx.moveTo(x,y-size); ctx.lineTo(x-size*0.9,y+size*0.6); ctx.lineTo(x+size*0.9,y+size*0.6); }
+      else{ ctx.moveTo(x,y+size); ctx.lineTo(x-size*0.9,y-size*0.6); ctx.lineTo(x+size*0.9,y-size*0.6); }
+      ctx.closePath();
+      ctx.fillStyle = up ? "#3d6b4f" : "#f54001";
+      ctx.fill();
+      ctx.lineWidth=1; ctx.strokeStyle="#fffbf5"; ctx.stroke();
+    });
+
     // stash layout so the hover handler can map cursor position back to data
     cv._cs = {res:res, n:n, X:X, Y:Y, padL:padL, padR:padR, padT:padT, padB:padB, W:W, H:H};
   }
@@ -752,7 +769,11 @@
       if(showInv)  rows+=ttRow("sw-inv","Investments",fmt(p.inv));
       if(showCash) rows+=ttRow("sw-cash","Cash",fmt(p.cash));
       if(showNW)   rows+=ttRow("sw-nw","Net worth",fmt(nw));
-      tt.innerHTML='<div class="tt-d">'+monthLabel(cs.res.start,p.m)+'</div>'+rows;
+      var evRows="";
+      (cs.res.oneEvents||[]).filter(function(e){ return e.m===idx; }).forEach(function(e){
+        evRows += '<div class="tt-row tt-event"><span>'+(e.kind==="in"?"▲ ":"▼ ")+e.name+'</span><span>'+(e.kind==="in"?"+":"−")+fmt(e.amt)+'</span></div>';
+      });
+      tt.innerHTML='<div class="tt-d">'+monthLabel(cs.res.start,p.m)+'</div>'+evRows+rows;
       var cssScale=rect.width/cv.width;
       var left=cv.offsetLeft + cs.X(idx)*cssScale;
       left=Math.max(cv.offsetLeft+4, Math.min(left, cv.offsetLeft+rect.width-180));
@@ -870,6 +891,10 @@
       pinChip("Debt-free", !res.hasDebt ? "No debt" : (res.debtFreeM!=null ? monthLabel(res.start,res.debtFreeM) : "> 30 yrs")) +
       pinChip("Net worth +ve", nw0>=0 ? "Already" : (res.zeroCross!=null ? monthLabel(res.start,res.zeroCross) : "Beyond horizon")) +
       pinChip("Net worth now", fmt(nw0));
+
+    document.getElementById("chart-note").textContent = res.oneEvents.length
+      ? "Monthly simulation · ▲▼ mark one-time events · click legend to toggle · hover for detail"
+      : "Monthly simulation · click legend figure to toggle · hover for detail";
 
     draw(res);
   }
@@ -1187,10 +1212,15 @@
     document.getElementById("sh-kpis").innerHTML=k;
 
     var ms=[];
-    ms.push({w:"Today", t:"Net worth stands at", v:fmt(res.series[0].inv+res.series[0].cash-res.series[0].debt)});
-    if(res.zeroCross!=null && res.series[0].inv+res.series[0].cash-res.series[0].debt<0) ms.push({w:monthLabel(res.start,res.zeroCross), t:"Net worth crosses zero", v:""});
-    if(res.debtFreeM!=null) ms.push({w:monthLabel(res.start,res.debtFreeM), t:"Final debt payment — debt-free", v:fmt(res.interest)+" total interest"});
-    [12,36,60,120].forEach(function(m){ if(m<=res.series.length-1){ var p=at(m); ms.push({w:monthLabel(res.start,m), t:(m/12)+"-year mark", v:"savings "+fmt(p.cash)+" · investments "+fmt(p.inv)}); }});
+    ms.push({m:-1, w:"Today", t:"Net worth stands at", v:fmt(res.series[0].inv+res.series[0].cash-res.series[0].debt)});
+    if(res.zeroCross!=null && res.series[0].inv+res.series[0].cash-res.series[0].debt<0) ms.push({m:res.zeroCross, w:monthLabel(res.start,res.zeroCross), t:"Net worth crosses zero", v:""});
+    if(res.debtFreeM!=null) ms.push({m:res.debtFreeM, w:monthLabel(res.start,res.debtFreeM), t:"Final debt payment — debt-free", v:fmt(res.interest)+" total interest"});
+    res.oneEvents.forEach(function(e){
+      if(e.m>res.series.length-1) return;
+      ms.push({m:e.m, w:monthLabel(res.start,e.m), t:(e.kind==="in"?"One-time income — ":"One-time payment — ")+e.name, v:(e.kind==="in"?"+":"−")+fmt(e.amt)});
+    });
+    [12,36,60,120].forEach(function(m){ if(m<=res.series.length-1){ var p=at(m); ms.push({m:m, w:monthLabel(res.start,m), t:(m/12)+"-year mark", v:"savings "+fmt(p.cash)+" · investments "+fmt(p.inv)}); }});
+    ms.sort(function(a,b){ return a.m-b.m; });
     var tl=document.getElementById("sh-ms"); tl.innerHTML="";
     ms.forEach(function(m){
       var d=el("div","tl");
