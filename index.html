@@ -79,14 +79,16 @@
   .row{display:grid;gap:6px;padding:8px 0;border-bottom:1px solid var(--rule);align-items:end}
   .row.cols-2{grid-template-columns:1fr 110px 24px}
   .row.cols-2b{grid-template-columns:1fr 130px}
+  .row.cols-2w{grid-template-columns:1fr 190px}
   .row.cols-3{grid-template-columns:1fr 100px 90px 24px}
   .row.cols-4{grid-template-columns:1fr 92px 62px 92px 24px}
   .row label{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
-  .row input{
+  .row input, .row select{
     width:100%;background:var(--card);border:1px solid var(--rule);color:var(--ink-deep);
     font-family:'JetBrains Mono',monospace;font-size:12.5px;padding:6px 8px;outline:none;
   }
-  .row input:focus{border-color:var(--accent)}
+  .row select{cursor:pointer}
+  .row input:focus, .row select:focus{border-color:var(--accent)}
   .row .del{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px 2px;line-height:1}
   .row .del:hover{color:var(--accent)}
   .add{
@@ -118,6 +120,7 @@
   .sw-inv{background:#3d6b4f}
   .sw-cash{background:#d9a441}
   .sw-nw{background:#4f483e}
+  .sw-nwlo{background:repeating-linear-gradient(90deg,#8a7d6b 0 4px,transparent 4px 7px)}
 
   /* trajectory chart: header, pin, milestones, tooltip */
   .chart-hd{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px 12px}
@@ -159,6 +162,9 @@
     display:none;background:#fbe9e2;border:1px solid var(--accent);color:#a32c00;
     font-size:12.5px;padding:10px 14px;margin-bottom:18px;font-family:'JetBrains Mono',monospace;
   }
+  .goalbox{background:var(--card);border:1px solid var(--ink);padding:12px 16px;margin-bottom:18px}
+  .goalbox .lab{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .goalbox .msg{font-size:13px;color:var(--ink-deep)}
   .yrtable{width:100%;border-collapse:collapse;font-size:12px;margin-top:18px}
   .yrtable caption{text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
   .yrtable th{text-align:left;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-top:1.5px solid var(--ink);border-bottom:1px solid var(--ink);padding:6px 8px 6px 0}
@@ -188,7 +194,7 @@
   .sheet-meta{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
   .sheet-top h2{font-family:'Playfair Display',serif;font-weight:900;font-size:38px;color:var(--ink-deep);margin-top:8px}
   .sheet-verdict{margin-top:8px;font-size:13.5px;color:var(--ink)}
-  .sheet-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--ink);border:1px solid var(--ink);margin-bottom:6px}
+  .sheet-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--ink);border:1px solid var(--ink);margin-bottom:6px}
   .sheet-kpis .sk{background:var(--cream);padding:12px 14px}
   .sheet-kpis .sk .l{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
   .sheet-kpis .sk .v{font-family:'JetBrains Mono',monospace;font-size:16.5px;font-weight:700;color:var(--ink-deep);margin-top:2px}
@@ -313,7 +319,7 @@
       <div class="hint">Your market engine: current invested balance, what you add monthly, and a long-run return assumption (be honest — 8% is a fair planning number, not a promise).</div>
       <div class="row cols-2b">
         <div><label for="inv-bal">Already invested</label><input type="number" id="inv-bal" value="5000" min="0" step="100"></div>
-        <div><label for="inv-ret">Return %/yr</label><input type="number" id="inv-ret" value="8" step="0.5"></div>
+        <div><label for="inv-ret">Return %/yr</label><input type="number" id="inv-ret" value="8" min="0" max="30" step="0.5"></div>
       </div>
       <div class="row cols-2b">
         <div><label for="inv-month">Monthly to stocks</label><input type="number" id="inv-month" value="1000" min="0" step="25"></div>
@@ -322,13 +328,36 @@
       <div class="hint mt-12">Your safety cushion: cash you hold today and the yield it earns (money-market ~3.6%). The unallocated monthly remainder accumulates here.</div>
       <div class="row cols-2b">
         <div><label for="cash-bal">Cash buffer today</label><input type="number" id="cash-bal" value="3000" min="0" step="100"></div>
-        <div><label for="cash-yield">Cash yield %/yr</label><input type="number" id="cash-yield" value="4" min="0" step="0.1"></div>
+        <div><label for="cash-yield">Cash yield %/yr</label><input type="number" id="cash-yield" value="4" min="0" max="20" step="0.1"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="p-assume">
+      <h2>Assumptions &amp; Goal</h2>
+      <div class="hint">Optional refinements to the projection. Leave at 0 to keep the simple version — these only change the numbers once you set them.</div>
+      <div class="row cols-2b">
+        <div><label for="inv-raise">Annual raise %/yr</label><input type="number" id="inv-raise" value="0" min="0" max="20" step="0.5"></div>
+        <div><label for="inv-infl">Inflation %/yr</label><input type="number" id="inv-infl" value="0" min="0" max="20" step="0.5"></div>
+      </div>
+      <div class="row cols-2w">
+        <div><label for="inv-tax">Tax on growth %/yr</label><input type="number" id="inv-tax" value="0" min="0" max="60" step="1"></div>
+        <div><label for="payoff-strategy">Payoff order</label>
+          <select id="payoff-strategy">
+            <option value="avalanche">Avalanche — lowest interest</option>
+            <option value="snowball">Snowball — smallest balance</option>
+          </select>
+        </div>
+      </div>
+      <div class="hint mt-12">Optional target — leave the amount at 0 to skip. Common regional lump sums like an end-of-service gratuity payout fit well as a one-time income below instead of here.</div>
+      <div class="row cols-2b">
+        <div><label for="goal-amt">Target net worth</label><input type="number" id="goal-amt" value="0" min="0" step="1000"></div>
+        <div><label for="goal-month">By month #</label><input type="number" id="goal-month" value="0" min="0" max="600" step="12"></div>
       </div>
     </div>
 
     <div class="panel" id="p-onetime">
       <h2>One-Time Events</h2>
-      <div class="hint">Lump sums that land on a specific month instead of every month — a bonus or gift, or a big one-off bill. "In month #" counts from today: 0 = this month, 12 = a year from now.</div>
+      <div class="hint">Lump sums that land on a specific month instead of every month — a bonus or gift, a tax refund, an end-of-service gratuity payout, or a big one-off bill. "In month #" counts from today: 0 = this month, 12 = a year from now.</div>
       <div class="hint mt-12">One-time income <span class="sum" id="sum-oneincome"></span></div>
       <div class="rows" data-kind="oneincome"></div>
       <button class="add" data-add="oneincome">+ Add one-time income</button>
@@ -342,6 +371,7 @@
   <div class="sticky">
     <button class="sheetbtn" id="open-sheet">▦ Open the Summary Sheet — analysis & recommendations</button>
     <div class="warn" id="warn"></div>
+    <div class="goalbox hidden" id="goalbox"><div class="lab">Goal check</div><div class="msg" id="goal-msg"></div></div>
 
     <div class="chartbox mb-22">
       <h3>Monthly Cash Flow</h3>
@@ -377,6 +407,7 @@
         <span><i class="sw-inv"></i>Stock investments</span>
         <span><i class="sw-cash"></i>Cash savings</span>
         <span><i class="sw-nw"></i>Net worth</span>
+        <span><i class="sw-nwlo"></i>Net worth (conservative)</span>
       </div>
       <table class="yrtable">
         <caption>Yearly summary</caption>
@@ -397,6 +428,9 @@
     </div>
 
     <div class="sheet-kpis" id="sh-kpis"></div>
+    <p class="sh-sub">"Sustainable draw" is investments at the end of this horizon × 4% — a rough, widely-used
+      starting point for what a portfolio can pay out a year without depleting it, not a plan for the
+      withdrawal phase itself.</p>
 
     <h3 class="sh-h">Milestones on the current plan</h3>
     <div class="timeline" id="sh-ms"></div>
@@ -408,6 +442,7 @@
       <span><i class="sw-inv"></i>Stock investments</span>
       <span><i class="sw-cash"></i>Cash savings</span>
       <span><i class="sw-nw"></i>Net worth</span>
+      <span><i class="sw-nwlo"></i>Net worth (conservative)</span>
     </div>
 
     <h3 class="sh-h">The Analyst's Desk <span class="sh-sub">— automated read of your numbers, computed on this device</span></h3>
@@ -496,7 +531,7 @@
       var inp=document.createElement("input");
       inp.dataset.field=c; inp.dataset.kind=kind;
       if(c==="name"){ inp.type="text"; inp.value=vals[i]||""; inp.placeholder=spec.labels[i]; }
-      else{ inp.type="number"; inp.min="0"; inp.value=vals[i]||""; inp.placeholder="0"; inp.step = (c==="apr")?"0.1":"1"; }
+      else{ inp.type="number"; inp.min="0"; inp.value=vals[i]||""; inp.placeholder="0"; inp.step = (c==="apr")?"0.1":"1"; if(c==="apr") inp.max="60"; }
       cell.appendChild(inp); row.appendChild(cell);
     });
     var del=el("button","del","×"); del.title="Remove";
@@ -527,7 +562,13 @@
                 month:parseFloat(document.getElementById("inv-month").value)||0,
                 extra:parseFloat(document.getElementById("inv-extra").value)||0,
                 cash:parseFloat(document.getElementById("cash-bal").value)||0,
-                cashYield:parseFloat(document.getElementById("cash-yield").value)||0 };
+                cashYield:parseFloat(document.getElementById("cash-yield").value)||0,
+                raise:parseFloat(document.getElementById("inv-raise").value)||0,
+                infl:parseFloat(document.getElementById("inv-infl").value)||0,
+                tax:parseFloat(document.getElementById("inv-tax").value)||0 };
+    state.strategy = document.getElementById("payoff-strategy").value;
+    state.goal={ amt:parseFloat(document.getElementById("goal-amt").value)||0,
+                 month:parseFloat(document.getElementById("goal-month").value)||0 };
     return state;
   }
 
@@ -546,7 +587,13 @@
         document.getElementById("inv-month").value=s.inv.month;
         document.getElementById("inv-extra").value=s.inv.extra;
         if(s.inv.cash!=null) document.getElementById("cash-bal").value=s.inv.cash;
-        if(s.inv.cashYield!=null) document.getElementById("cash-yield").value=s.inv.cashYield; }
+        if(s.inv.cashYield!=null) document.getElementById("cash-yield").value=s.inv.cashYield;
+        if(s.inv.raise!=null) document.getElementById("inv-raise").value=s.inv.raise;
+        if(s.inv.infl!=null) document.getElementById("inv-infl").value=s.inv.infl;
+        if(s.inv.tax!=null) document.getElementById("inv-tax").value=s.inv.tax; }
+      if(s.strategy) document.getElementById("payoff-strategy").value=s.strategy;
+      if(s.goal){ document.getElementById("goal-amt").value=s.goal.amt||0;
+        document.getElementById("goal-month").value=s.goal.month||0; }
     } else {
       Object.keys(SEED).forEach(function(k){ SEED[k].forEach(function(v){ addRow(k,v); }); });
     }
@@ -554,36 +601,80 @@
 
   /* ---------- simulation ---------- */
   function simulate(st){
-    var income = st.income.reduce(function(a,b){return a+b.amt;},0);
+    var income0 = st.income.reduce(function(a,b){return a+b.amt;},0);
     var fixed  = st.oblig.concat(st.exp).reduce(function(a,b){return a+b.amt;},0);
     var debts  = st.debt.concat(st.card).filter(function(d){return d.bal>0;})
                  .map(function(d){return {name:d.name||"Debt", bal:d.bal, apr:d.apr/100, pay:d.pay};});
 
     var minTotal = debts.reduce(function(a,d){return a+d.pay;},0);
-    var freeCash = income - fixed - minTotal;
+    var freeCash0 = income0 - fixed - minTotal;
     var need = st.inv.month + st.inv.extra;
     var warn = null;
-    if (freeCash < 0) warn = "Deficit: expenses and debt payments exceed income by "+fmt(-freeCash)+" / month. The projection assumes you close this gap.";
-    else if (need > freeCash) warn = "Your investing + extra-debt plan ("+fmt(need)+"/mo) exceeds the free surplus ("+fmt(freeCash)+"/mo). Amounts were scaled down proportionally in the simulation.";
+    if (freeCash0 < 0) warn = "Deficit: expenses and debt payments exceed income by "+fmt(-freeCash0)+" / month. The projection assumes you close this gap — and a shortfall left open compounds a real financing cost, not a free one.";
+    else if (need > freeCash0) warn = "Your investing + extra-debt plan ("+fmt(need)+"/mo) exceeds the free surplus ("+fmt(freeCash0)+"/mo). The surplus now funds whichever beats the other — see the Analyst's Desk.";
 
-    var scale = (freeCash>0 && need>freeCash) ? freeCash/need : 1;
-    var invAdd = st.inv.month*scale, extra0 = st.inv.extra*scale;
+    // C3: a debt rate above the return assumption is a better guaranteed use of surplus than investing it —
+    // when the surplus can't cover both asks in full, fund whichever wins that comparison first instead of
+    // scaling both down together.
+    var maxDebtApr = debts.length ? Math.max.apply(null, debts.map(function(d){return d.apr*100;})) : -1;
+    var debtBeatsReturn = maxDebtApr > st.inv.ret;
+    var debtBeatsReturn0 = debtBeatsReturn; // today's snapshot, for reporting — allocate() below tracks the live value as debts clear
+    function allocate(freeCash){
+      if(freeCash>=need) return {invAdd:st.inv.month, extra0:st.inv.extra};
+      if(freeCash<=0) return {invAdd:0, extra0:0};
+      var a, b;
+      if(debtBeatsReturn){ a=Math.min(st.inv.extra, freeCash); b=Math.max(0, Math.min(st.inv.month, freeCash-a)); return {invAdd:b, extra0:a}; }
+      a=Math.min(st.inv.month, freeCash); b=Math.max(0, Math.min(st.inv.extra, freeCash-a)); return {invAdd:a, extra0:b};
+    }
 
     // one-time income/payments: lump sums that land in cash on a specific month (0 = this month)
     var oneByM = {}, oneEvents = [];
     st.oneincome.forEach(function(o){ var m=Math.max(0,Math.round(o.month)); oneByM[m]=(oneByM[m]||0)+o.amt; oneEvents.push({m:m, name:o.name||"One-time income", amt:o.amt, kind:"in"}); });
     st.onepay.forEach(function(o){ var m=Math.max(0,Math.round(o.month)); oneByM[m]=(oneByM[m]||0)-o.amt; oneEvents.push({m:m, name:o.name||"One-time payment", amt:o.amt, kind:"out"}); });
 
-    var inv = st.inv.bal, rInv = st.inv.ret/100/12;
-    var cash = st.inv.cash + (oneByM[0]||0), rCash = st.inv.cashYield/100/12;
+    // C4: an optional effective tax rate shaves the compounding rate on both stocks and cash yield
+    var taxCut = 1 - Math.min(0.9, Math.max(0, (st.inv.tax||0)/100));
+    var rInv = (st.inv.ret/100/12) * taxCut;
+    var rInvLo = ((st.inv.ret*0.5)/100/12) * taxCut; // M2: conservative comparison line, half the assumed return
+    var rCash = (st.inv.cashYield/100/12) * taxCut;
+    // C2: a negative cash balance isn't free — it's financed somehow. Proxy the cost with the highest APR
+    // already on the sheet, or a punitive regional default if there's no debt to anchor to.
+    var negRate = (maxDebtApr>0 ? maxDebtApr/100 : 0.18) / 12;
+    var inflRate = (st.inv.infl||0)/100/12;
+
+    var cash0 = st.inv.cash + (oneByM[0]||0);
+    var inv = st.inv.bal, invLo = st.inv.bal, cash = cash0;
     var start = new Date(); start = new Date(start.getFullYear(), start.getMonth(), 1);
-    var series=[{m:0, debt:debts.reduce(function(a,d){return a+d.bal;},0), inv:inv, cash:cash}];
+    var debt0 = debts.reduce(function(a,d){return a+d.bal;},0);
+    var series=[{m:0, debt:debt0, inv:inv, cash:cash, invLo:invLo, nwReal:inv+cash-debt0}];
     var interest=0, zeroCross=null, debtFreeM=null;
     var MAXM=600;
+    var bufferTarget = 3*(fixed+minTotal);
+
+    // month-1 allocation, exposed below for the cash-flow breakdown and KPIs
+    var alloc0 = allocate(freeCash0);
+    var invAdd0 = (cash0>=bufferTarget) ? alloc0.invAdd : 0;
 
     for(var m=1; m<=MAXM; m++){
-      // investments grow + contribution (contribution continues even after debt-free)
-      inv = inv*(1+rInv) + invAdd;
+      // C3, kept live: re-check which side wins as debts get paid off, so a high-APR card clearing
+      // mid-plan doesn't leave a lower-rate debt wrongly still outranking the return assumption.
+      var liveMaxApr=-1;
+      debts.forEach(function(d){ if(d.bal>0 && d.apr*100>liveMaxApr) liveMaxApr=d.apr*100; });
+      debtBeatsReturn = liveMaxApr > st.inv.ret;
+
+      // M3: income steps up with the assumed annual raise, recomputed every month rather than fixed at today's figure
+      var income = income0 * Math.pow(1+(st.inv.raise||0)/100, Math.floor((m-1)/12));
+      var freeCash = income - fixed - minTotal;
+      var alloc = allocate(freeCash);
+      var invAddWanted = alloc.invAdd, extra0 = alloc.extra0;
+
+      // M1: new stock contributions hold in cash until the 3-month buffer is actually built — matching the
+      // Analyst's Desk advice instead of contradicting it. Extra-to-debt is not gated: paying down a known
+      // rate is still sound before the buffer is full.
+      var investNow = (cash>=bufferTarget) ? invAddWanted : 0;
+
+      inv = inv*(1+rInv) + investNow;
+      invLo = invLo*(1+rInvLo) + investNow;
 
       // accrue interest
       debts.forEach(function(d){ if(d.bal>0){ var i=d.bal*d.apr/12; interest+=i; d.bal+=i; } });
@@ -596,24 +687,31 @@
       debts.forEach(function(d){
         if(d.bal>0){ var p=Math.min(d.pay, d.bal); d.bal-=p; pool-=p; }
       });
-      // avalanche: remaining pool to highest APR
+      // payoff order: avalanche (highest APR first) or snowball (smallest balance first)
       var guard=0;
       while(pool>0.01 && guard++<50){
         var target=null;
-        debts.forEach(function(d){ if(d.bal>0 && (!target||d.apr>target.apr)) target=d; });
+        debts.forEach(function(d){
+          if(d.bal<=0) return;
+          if(!target){ target=d; return; }
+          var better = st.strategy==="snowball" ? d.bal<target.bal : d.apr>target.apr;
+          if(better) target=d;
+        });
         if(!target) break;
         var p=Math.min(pool, target.bal); target.bal-=p; pool-=p;
       }
 
       // freed debt money (leftover on the payoff month, everything once debt-free) rolls into cash savings
       var freed = active ? Math.max(0, pool) : minTotal + extra0;
-      // cash savings: yield on positive balance + unallocated remainder + freed debt money
-      var remainingNow = freeCash - invAdd - extra0 + freed;
-      if (cash > 0) cash = cash*(1+rCash);
+      // cash savings: yield on a positive balance, a real financing cost on a negative one, plus the
+      // unallocated remainder (including anything M1 held back from stocks) and freed debt money
+      var remainingNow = freeCash - investNow - extra0 + freed;
+      cash = cash>0 ? cash*(1+rCash) : cash*(1+negRate);
       cash += remainingNow + (oneByM[m]||0);
 
       var totalDebt = debts.reduce(function(a,d){return a+Math.max(0,d.bal);},0);
-      series.push({m:m, debt:totalDebt, inv:inv, cash:cash});
+      var inflFactor = Math.pow(1+inflRate, m);
+      series.push({m:m, debt:totalDebt, inv:inv, cash:cash, invLo:invLo, nwReal:(inv+cash-totalDebt)/inflFactor});
       if(debtFreeM===null && totalDebt<0.01 && (st.debt.concat(st.card)).some(function(d){return d.bal>0;})) debtFreeM=m;
       if(zeroCross===null && inv + cash - totalDebt >= 0) zeroCross=m;
       if(debtFreeM!==null && m>=debtFreeM+1 && m>120) break; // stop 1 month after debt-free if very long, cap later
@@ -622,16 +720,19 @@
     // trim series: show until debt-free + a margin, at least 24 months, at most 360
     var end = Math.min(series.length-1, Math.max(debtFreeM!=null?debtFreeM+6:120, 24, 120));
     series = series.slice(0, end+1);
+    var lastP = series[series.length-1];
 
     return {series:series, warn:warn, interest:interest, debtFreeM:debtFreeM,
             zeroCross:zeroCross, invAtFree: debtFreeM!=null? series[Math.min(debtFreeM, series.length-1)].inv : null,
-            start:start, freeCash:freeCash, minTotal:minTotal, invAdd:invAdd, extraUsed:extra0,
-            income:income, fixed:fixed, hasDebt: st.debt.concat(st.card).some(function(d){return d.bal>0;}),
-            oneEvents:oneEvents};
+            start:start, freeCash:freeCash0, minTotal:minTotal, invAdd:invAdd0, extraUsed:alloc0.extra0,
+            income:income0, fixed:fixed, hasDebt: st.debt.concat(st.card).some(function(d){return d.bal>0;}),
+            oneEvents:oneEvents, debtBeatsReturn:debtBeatsReturn0, maxDebtApr:maxDebtApr, bufferTarget:bufferTarget,
+            taxCut:taxCut, hasInflation:(st.inv.infl||0)>0, hasRaise:(st.inv.raise||0)>0,
+            sustainableWithdrawal: lastP.inv*0.04, nwRealEnd: lastP.nwReal, goal:st.goal};
   }
 
   /* ---------- chart ---------- */
-  var showDebt=true, showInv=true, showCash=true, showNW=true;
+  var showDebt=true, showInv=true, showCash=true, showNW=true, showNWLo=false;
   function draw(res, cv){
     cv = cv || document.getElementById("chart");
     var ctx=cv.getContext("2d");
@@ -642,9 +743,9 @@
     // otherwise those stretches draw below the axis and vanish off-canvas.
     var maxV=1, minV=0;
     s.forEach(function(p){
-      var nw=p.inv+p.cash-p.debt;
-      maxV=Math.max(maxV, p.debt, p.inv, p.cash, nw);
-      minV=Math.min(minV, p.debt, p.inv, p.cash, nw);
+      var nw=p.inv+p.cash-p.debt, nwLo=p.invLo+p.cash-p.debt;
+      maxV=Math.max(maxV, p.debt, p.inv, p.cash, nw, nwLo);
+      minV=Math.min(minV, p.debt, p.inv, p.cash, nw, nwLo);
     });
     maxV*=1.08;
     if(minV<0) minV*=1.08;
@@ -677,23 +778,28 @@
       ctx.fillStyle="#8a7d6b"; ctx.fillText(monthLabel(res.start, s[i].m), xx, H-padB+18);
     }
 
-    function line(get, color, width){
-      ctx.strokeStyle=color; ctx.lineWidth=width||2.5; ctx.beginPath();
+    function line(get, color, width, dash){
+      ctx.strokeStyle=color; ctx.lineWidth=width||2.5; if(dash) ctx.setLineDash(dash);
+      ctx.beginPath();
       s.forEach(function(p,i){ var x=X(i), y=Y(get(p)); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
-      ctx.stroke();
+      ctx.stroke(); if(dash) ctx.setLineDash([]);
     }
     if(showDebt) line(function(p){return p.debt;}, "#a32c00");
     if(showInv)  line(function(p){return p.inv;}, "#3d6b4f");
     if(showCash) line(function(p){return p.cash;}, "#d9a441");
+    if(showNWLo) line(function(p){return p.invLo+p.cash-p.debt;}, "#8a7d6b", 1.75, [5,3]);
     if(showNW)   line(function(p){return p.inv+p.cash-p.debt;}, "#4f483e", 2);
 
-    // milestone markers (net-worth-positive, debt-free) — staggered so close dates don't collide
+    // milestone markers (net-worth-positive, debt-free, optional goal) — staggered so close dates don't collide
     var milestones=[];
     if(res.zeroCross!=null && res.zeroCross<n){
       milestones.push({m:res.zeroCross, color:"#3d6b4f", label:"NET WORTH +VE · "+monthLabel(res.start,res.zeroCross).toUpperCase()});
     }
     if(res.debtFreeM!=null && res.debtFreeM<n){
       milestones.push({m:res.debtFreeM, color:"#f54001", label:"DEBT-FREE · "+monthLabel(res.start,res.debtFreeM).toUpperCase()});
+    }
+    if(res.goal && res.goal.amt>0 && res.goal.month<n){
+      milestones.push({m:res.goal.month, color:"#6b4fa0", label:"GOAL · "+monthLabel(res.start,res.goal.month).toUpperCase()});
     }
     milestones.sort(function(a,b){return a.m-b.m;});
     var prevX=-Infinity, lane=0;
@@ -738,6 +844,7 @@
     if(showDebt) series.push([p.debt,"#a32c00"]);
     if(showInv)  series.push([p.inv,"#3d6b4f"]);
     if(showCash) series.push([p.cash,"#d9a441"]);
+    if(showNWLo) series.push([p.invLo+p.cash-p.debt,"#8a7d6b"]);
     if(showNW)   series.push([p.inv+p.cash-p.debt,"#4f483e"]);
     series.forEach(function(pt){
       var y=cs.Y(pt[0]);
@@ -768,6 +875,7 @@
       if(showDebt) rows+=ttRow("sw-debt","Debt",fmt(p.debt));
       if(showInv)  rows+=ttRow("sw-inv","Investments",fmt(p.inv));
       if(showCash) rows+=ttRow("sw-cash","Cash",fmt(p.cash));
+      if(showNWLo) rows+=ttRow("sw-nwlo","Net worth (conservative)",fmt(p.invLo+p.cash-p.debt));
       if(showNW)   rows+=ttRow("sw-nw","Net worth",fmt(nw));
       var evRows="";
       (cs.res.oneEvents||[]).filter(function(e){ return e.m===idx; }).forEach(function(e){
@@ -896,6 +1004,19 @@
       ? "Monthly simulation · ▲▼ mark one-time events · click legend to toggle · hover for detail"
       : "Monthly simulation · click legend figure to toggle · hover for detail";
 
+    var gbox=document.getElementById("goalbox");
+    if(st.goal && st.goal.amt>0){
+      var gp=res.series[Math.min(st.goal.month, res.series.length-1)];
+      var gVal=gp.inv+gp.cash-gp.debt;
+      var onTrack = st.goal.month<res.series.length && gVal>=st.goal.amt;
+      document.getElementById("goal-msg").textContent = onTrack
+        ? "On track for "+fmt(st.goal.amt)+" by "+monthLabel(res.start,st.goal.month)+" — projected "+fmt(gVal)+"."
+        : "Short of "+fmt(st.goal.amt)+" by "+monthLabel(res.start,st.goal.month)+" — projected "+fmt(gVal)+". Open the Summary Sheet for how much more it takes to close the gap.";
+      gbox.classList.remove("hidden");
+    } else {
+      gbox.classList.add("hidden");
+    }
+
     draw(res);
   }
   function pinChip(label, val){ return '<div class="chip"><span class="l">'+label+'</span><span class="v">'+val+'</span></div>'; }
@@ -905,10 +1026,11 @@
     legend.querySelectorAll("span").forEach(function(sp,i){
       sp.style.cursor="pointer";
       sp.onclick=function(){
-        if(i===0)showDebt=!showDebt; else if(i===1)showInv=!showInv; else if(i===2)showCash=!showCash; else showNW=!showNW;
-        sp.style.opacity=(i===0?showDebt:i===1?showInv:i===2?showCash:showNW)?1:0.35;
+        if(i===0)showDebt=!showDebt; else if(i===1)showInv=!showInv; else if(i===2)showCash=!showCash; else if(i===3)showNW=!showNW; else showNWLo=!showNWLo;
+        sp.style.opacity=(i===0?showDebt:i===1?showInv:i===2?showCash:i===3?showNW:showNWLo)?1:0.35;
         compute();
       };
+      if(i===4) sp.style.opacity=0.35;
     });
   });
 
@@ -1043,6 +1165,14 @@
         document.getElementById("inv-extra").value = s.inv.extra;
         if(s.inv.cash != null) document.getElementById("cash-bal").value = s.inv.cash;
         if(s.inv.cashYield != null) document.getElementById("cash-yield").value = s.inv.cashYield;
+        if(s.inv.raise != null) document.getElementById("inv-raise").value = s.inv.raise;
+        if(s.inv.infl != null) document.getElementById("inv-infl").value = s.inv.infl;
+        if(s.inv.tax != null) document.getElementById("inv-tax").value = s.inv.tax;
+      }
+      if(s.strategy) document.getElementById("payoff-strategy").value = s.strategy;
+      if(s.goal){
+        document.getElementById("goal-amt").value = s.goal.amt || 0;
+        document.getElementById("goal-month").value = s.goal.month || 0;
       }
       save(); compute();
     } finally { CLOUD.applying = false; }
@@ -1114,6 +1244,12 @@
     var saveRate=income>0?kept/income:0;
     var nw0=res.series[0].inv+res.series[0].cash-res.series[0].debt;
 
+    /* 0 — risk protection, asked before anything numeric because nothing below survives income stopping */
+    if(income>0){
+      F.push({tone:"info", title:"Before any of this: is the income itself protected?",
+        text:"Every line on this sheet assumes the income column keeps arriving on schedule. Health, life, and income-continuity cover aren't modeled here — if a gap there exists, closing it protects the plan more than any debt or investing choice below does."});
+    }
+
     /* 1 — cash flow & savings rate */
     if(income<=0){
       F.push({tone:"bad", title:"No income on the sheet", text:"Everything downstream is guesswork until income is entered. Add every net monthly source on the left."});
@@ -1138,6 +1274,14 @@
       if(top.apr>=15){
         R.push("The "+top.apr+"% rate on "+(top.name||"your card")+" is toxic. Ask your bank about refinancing into a salary-transfer personal loan — in the GCC these often price far below card rates, and cutting the rate changes the trajectory more than any investment pick.");
       }
+      if(res.debtBeatsReturn){
+        var need2 = st.inv.month + st.inv.extra;
+        F.push({tone:"warn", title:top.apr+"% debt beats your "+st.inv.ret+"% return assumption",
+          text:"Paying down "+(top.name||"this debt")+" is a guaranteed "+top.apr+"% return; investing is an assumed "+st.inv.ret+"%. Until it's gone, every spare unit is worth more sent to debt than to stocks."+(free<need2?" The projection already routes the surplus that way automatically, since it's too tight to fund both asks in full.":"")});
+        if(free<need2){
+          R.push("Your surplus can't cover both asks in full, so it's funding debt first: shift more from \"Monthly to stocks\" into \"Extra to debt\" while "+(top.name||"this debt")+" carries a higher rate than your return assumption.");
+        }
+      }
       if(free>0 && res.debtFreeM!=null){
         var bump=Math.max(500, Math.round(income*0.05/100)*100);
         var st2=JSON.parse(JSON.stringify(st)); st2.inv.extra=(st.inv.extra||0)+bump;
@@ -1155,9 +1299,9 @@
       var run=st.inv.cash/monthlyOut;
       F.push({tone: run>=3?"good":(run>=1?"warn":"bad"),
         title:"Cash buffer covers "+run.toFixed(1)+" months",
-        text:"Your cash of "+fmt(st.inv.cash)+" covers "+run.toFixed(1)+" months of total outgoings ("+fmt(monthlyOut)+"/mo). The safety band is 3–6 months"+(run<3?" — reaching 3 needs "+fmt(Math.max(0,3*monthlyOut-st.inv.cash))+" more.":" — you are inside it; extra cash beyond 6 months is better invested.")});
+        text:"Your cash of "+fmt(st.inv.cash)+" covers "+run.toFixed(1)+" months of total outgoings ("+fmt(monthlyOut)+"/mo). The safety band is 3–6 months"+(run<3?" — reaching 3 needs "+fmt(Math.max(0,3*monthlyOut-st.inv.cash))+" more. The projection itself now holds new stock contributions in cash until you're there, so the chart matches this advice instead of ignoring it.":" — you are inside it; extra cash beyond 6 months is better invested.")});
       if(run<3){
-        R.push("Before raising investments, build the buffer to 3 months ("+fmt(3*monthlyOut)+"). Hold it in a money-market or high-yield savings vehicle — never in stocks.");
+        R.push("Build the buffer to 3 months ("+fmt(3*monthlyOut)+") first. Hold it in a money-market or high-yield savings vehicle — never in stocks; the projection is already redirecting your \"Monthly to stocks\" amount into cash until this is met.");
       }
     }
 
@@ -1166,9 +1310,17 @@
       var p5=res.series[Math.min(60,res.series.length-1)];
       F.push({tone:"info",
         title:"Investing "+fmt(res.invAdd)+"/month at a "+st.inv.ret+"% assumption",
-        text:"At that pace, investments read "+fmt(p5.inv)+" at the five-year mark — a projection, not a promise; markets will not move in a straight line. Over long horizons the contribution rate matters more than the return assumption early on, so the habit beats the forecast."});
+        text:"At that pace, investments read "+fmt(p5.inv)+" at the five-year mark"+(res.taxCut<1?" after tax":"")+" — a projection, not a promise. At half that return ("+(st.inv.ret/2).toFixed(1)+"%), the conservative line on the chart reads "+fmt(p5.invLo)+" at the same mark instead — turn it on from the legend to see the gap. Over long horizons the contribution rate matters more than the return assumption early on, so the habit beats the forecast."});
       if(saveRate>=0.15 && res.invAdd>0){
         R.push("When income rises, raise the monthly investment before lifestyle — even +"+fmt(Math.round(income*0.02/100)*100)+"/month is visible by the five-year mark. Automate it on payday.");
+      }
+      if(res.taxCut<1){
+        F.push({tone:"info", title:"Growth is shown after a "+((1-res.taxCut)*100).toFixed(0)+"% tax assumption",
+          text:"The compounding rate on stocks and cash yield is already cut by your entered tax rate, so the figures on this sheet are net, not gross. Set it back to 0 if your investment gains aren't actually taxed where you live."});
+      }
+      if(res.hasRaise){
+        F.push({tone:"info", title:"Income is stepped up "+st.inv.raise+"%/yr, not held flat",
+          text:"Every figure on this sheet assumes income rises "+st.inv.raise+"% each year rather than staying at today's "+fmt(income)+". That's what pulls the debt-free date and the surplus forward compared to a flat-income version of the same plan — set it back to 0 to see the more conservative read."});
       }
     }
 
@@ -1180,9 +1332,42 @@
     } else {
       F.push({tone:"warn", title:"Net worth stays negative across the horizon", text:"At the current pace, debt outweighs assets throughout. Raising payments, cutting the APR, or freeing income each move the crossover forward by months or years."});
     }
+    if(res.hasInflation){
+      var endP=res.series[res.series.length-1];
+      F.push({tone:"info", title:"The final figure is "+fmt(endP.nwReal)+" in today's money",
+        text:"At "+monthLabel(res.start,endP.m)+", the chart's nominal net worth reads "+fmt(endP.inv+endP.cash-endP.debt)+" — but at your "+st.inv.infl+"% inflation assumption, that buys what "+fmt(endP.nwReal)+" buys today. Plan against the second number."});
+    }
+
+    /* 6 — goal check */
+    if(st.goal && st.goal.amt>0){
+      var gEnd=res.series[Math.min(st.goal.month, res.series.length-1)];
+      var gVal=gEnd ? gEnd.inv+gEnd.cash-gEnd.debt : null;
+      var onTrack = gVal!=null && st.goal.month<res.series.length && gVal>=st.goal.amt;
+      if(onTrack){
+        F.push({tone:"good", title:"On track for "+fmt(st.goal.amt)+" by "+monthLabel(res.start,st.goal.month),
+          text:"The current plan reads "+fmt(gVal)+" at that month — already at or past the target."});
+      } else {
+        // binary-search the minimum extra monthly investment that closes the gap by the target month
+        var lo=0, hi=Math.max(1000, income*2), needed=null;
+        for(var iter=0; iter<24 && hi-lo>10; iter++){
+          var mid=(lo+hi)/2;
+          var stT=JSON.parse(JSON.stringify(st)); stT.inv.month=st.inv.month+mid;
+          var rT=simulate(stT);
+          var pT=rT.series[Math.min(st.goal.month, rT.series.length-1)];
+          var vT = pT ? pT.inv+pT.cash-pT.debt : -Infinity;
+          if(st.goal.month<rT.series.length && vT>=st.goal.amt){ needed=mid; hi=mid; } else { lo=mid; }
+        }
+        var short = st.goal.amt - (gVal!=null?gVal:res.series[res.series.length-1].inv+res.series[res.series.length-1].cash-res.series[res.series.length-1].debt);
+        F.push({tone:"warn", title:"Short of "+fmt(st.goal.amt)+" by "+monthLabel(res.start,st.goal.month),
+          text: needed!=null
+            ? "The current plan falls "+fmt(Math.max(0,short))+" short at that month. Adding "+fmt(needed)+"/month more to stocks closes it by the deadline, all else equal."
+            : "The current plan falls "+fmt(Math.max(0,short))+" short at that month, and no realistic monthly increase alone closes it in time — the date, the target, or the surplus needs to move."});
+        if(needed!=null) R.push("To hit "+fmt(st.goal.amt)+" by "+monthLabel(res.start,st.goal.month)+", raise \"Monthly to stocks\" by roughly "+fmt(needed)+".");
+      }
+    }
 
     if(!R.length) R.push("Stay the course: automate the monthly investment on payday and review this sheet once a month.");
-    return {F:F, R:R.slice(0,5)};
+    return {F:F, R:R};
   }
 
   function renderSheet(st, res){
@@ -1209,6 +1394,8 @@
     k+=sheetKpi("Buffer runway", monthlyOut>0?(st.inv.cash/monthlyOut).toFixed(1)+" months":"—");
     k+=sheetKpi("Investments · 5 yrs", fmt(at(60).inv));
     k+=sheetKpi("Net worth · 5 yrs", fmt(at(60).inv+at(60).cash-at(60).debt));
+    k+=sheetKpi("Net worth · 10 yrs", fmt(at(120).inv+at(120).cash-at(120).debt));
+    k+=sheetKpi("Sustainable draw", fmt(res.sustainableWithdrawal)+"/yr");
     document.getElementById("sh-kpis").innerHTML=k;
 
     var ms=[];
@@ -1219,6 +1406,9 @@
       if(e.m>res.series.length-1) return;
       ms.push({m:e.m, w:monthLabel(res.start,e.m), t:(e.kind==="in"?"One-time income — ":"One-time payment — ")+e.name, v:(e.kind==="in"?"+":"−")+fmt(e.amt)});
     });
+    if(st.goal && st.goal.amt>0 && st.goal.month<=res.series.length-1){
+      ms.push({m:st.goal.month, w:monthLabel(res.start,st.goal.month), t:"Goal target — "+fmt(st.goal.amt), v:"projected "+fmt(at(st.goal.month).inv+at(st.goal.month).cash-at(st.goal.month).debt)});
+    }
     [12,36,60,120].forEach(function(m){ if(m<=res.series.length-1){ var p=at(m); ms.push({m:m, w:monthLabel(res.start,m), t:(m/12)+"-year mark", v:"savings "+fmt(p.cash)+" · investments "+fmt(p.inv)}); }});
     ms.sort(function(a,b){ return a.m-b.m; });
     var tl=document.getElementById("sh-ms"); tl.innerHTML="";
