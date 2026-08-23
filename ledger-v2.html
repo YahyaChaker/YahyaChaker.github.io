@@ -618,6 +618,7 @@
     // scaling both down together.
     var maxDebtApr = debts.length ? Math.max.apply(null, debts.map(function(d){return d.apr*100;})) : -1;
     var debtBeatsReturn = maxDebtApr > st.inv.ret;
+    var debtBeatsReturn0 = debtBeatsReturn; // today's snapshot, for reporting — allocate() below tracks the live value as debts clear
     function allocate(freeCash){
       if(freeCash>=need) return {invAdd:st.inv.month, extra0:st.inv.extra};
       if(freeCash<=0) return {invAdd:0, extra0:0};
@@ -655,6 +656,12 @@
     var invAdd0 = (cash0>=bufferTarget) ? alloc0.invAdd : 0;
 
     for(var m=1; m<=MAXM; m++){
+      // C3, kept live: re-check which side wins as debts get paid off, so a high-APR card clearing
+      // mid-plan doesn't leave a lower-rate debt wrongly still outranking the return assumption.
+      var liveMaxApr=-1;
+      debts.forEach(function(d){ if(d.bal>0 && d.apr*100>liveMaxApr) liveMaxApr=d.apr*100; });
+      debtBeatsReturn = liveMaxApr > st.inv.ret;
+
       // M3: income steps up with the assumed annual raise, recomputed every month rather than fixed at today's figure
       var income = income0 * Math.pow(1+(st.inv.raise||0)/100, Math.floor((m-1)/12));
       var freeCash = income - fixed - minTotal;
@@ -719,7 +726,7 @@
             zeroCross:zeroCross, invAtFree: debtFreeM!=null? series[Math.min(debtFreeM, series.length-1)].inv : null,
             start:start, freeCash:freeCash0, minTotal:minTotal, invAdd:invAdd0, extraUsed:alloc0.extra0,
             income:income0, fixed:fixed, hasDebt: st.debt.concat(st.card).some(function(d){return d.bal>0;}),
-            oneEvents:oneEvents, debtBeatsReturn:debtBeatsReturn, maxDebtApr:maxDebtApr, bufferTarget:bufferTarget,
+            oneEvents:oneEvents, debtBeatsReturn:debtBeatsReturn0, maxDebtApr:maxDebtApr, bufferTarget:bufferTarget,
             taxCut:taxCut, hasInflation:(st.inv.infl||0)>0, hasRaise:(st.inv.raise||0)>0,
             sustainableWithdrawal: lastP.inv*0.04, nwRealEnd: lastP.nwReal, goal:st.goal};
   }
@@ -1310,6 +1317,10 @@
       if(res.taxCut<1){
         F.push({tone:"info", title:"Growth is shown after a "+((1-res.taxCut)*100).toFixed(0)+"% tax assumption",
           text:"The compounding rate on stocks and cash yield is already cut by your entered tax rate, so the figures on this sheet are net, not gross. Set it back to 0 if your investment gains aren't actually taxed where you live."});
+      }
+      if(res.hasRaise){
+        F.push({tone:"info", title:"Income is stepped up "+st.inv.raise+"%/yr, not held flat",
+          text:"Every figure on this sheet assumes income rises "+st.inv.raise+"% each year rather than staying at today's "+fmt(income)+". That's what pulls the debt-free date and the surplus forward compared to a flat-income version of the same plan — set it back to 0 to see the more conservative read."});
       }
     }
 
