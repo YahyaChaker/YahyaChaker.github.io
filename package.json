@@ -1,0 +1,14 @@
+{
+  "name": "the-ledger",
+  "version": "1.0.0",
+  "description": "The Ledger — personal debt & investment planner with cloud sync",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "echo 'Static site, no build step required'",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

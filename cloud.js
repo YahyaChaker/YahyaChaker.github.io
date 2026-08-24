@@ -4,8 +4,12 @@
    No secrets here — security is enforced server-side by RLS + JWT. */
 window.LedgerCloud = (function(){
 "use strict";
-var AUTH_URL = "https://ep-cold-poetry-axjdfnxy.neonauth.c-4.us-east-2.aws.neon.tech/neondb/auth";
-var API_URL  = "https://ep-cold-poetry-axjdfnxy.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1";
+var AUTH_URL = (location.hostname === "yahyachaker.github.io")
+  ? "https://ep-cold-poetry-axjdfnxy.neonauth.c-4.us-east-2.aws.neon.tech/neondb/auth"
+  : "/api/auth";
+var API_URL  = (location.hostname === "yahyachaker.github.io")
+  ? "https://ep-cold-poetry-axjdfnxy.apirest.c-4.us-east-2.aws.neon.tech/neondb/rest/v1"
+  : "/api/rest";
 var C = { user:null, jwt:null, jwtExp:0 };
 var els = {};
 var onUserCb = null;
@@ -114,7 +118,7 @@ function getLedger(){
 
 /* ---- auth ---- */
 function afterAuth(u){
-  C.user = u; C.jwt = null;
+  C.user = u;
   renderBar();
   if(onUserCb) onUserCb(C.user);
 }
@@ -128,6 +132,12 @@ function auth(path){
     : {email: email, password: pass};
   authFetch(path, {method:"POST", body: JSON.stringify(body)})
     .then(function(d){
+      if(d && (d.token || d.jwt)){
+        C.jwt = d.token || d.jwt;
+        try{
+          C.jwtExp = JSON.parse(atob(C.jwt.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).exp || (Date.now()/1000 + 300);
+        }catch(e){ C.jwtExp = Date.now()/1000 + 300; }
+      }
       if(d && d.user) return d.user;
       return authFetch("/get-session").then(function(s){ return s && s.user; });
     })
