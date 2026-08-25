@@ -84,6 +84,7 @@
   .row.cols-3b{grid-template-columns:1fr 110px 90px 24px}
   .row.cols-4{grid-template-columns:1fr 92px 62px 92px 24px}
   .row.cols-4b{grid-template-columns:1fr 92px 62px 80px 24px}
+  .row.cols-4c{grid-template-columns:1.2fr 88px 60px 88px 24px}
   .row.cols-5{grid-template-columns:1.2fr 84px 54px 78px 68px 24px}
   .row label{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
   .row input, .row select{
@@ -373,7 +374,7 @@
 
     <div class="panel" id="p-asset">
       <h2>Other Assets &amp; Gratuity <span class="sum" id="sum-asset"></span></h2>
-      <div class="hint">Non-market assets that form part of your net worth: property equity, physical gold, end-of-service gratuity accrued, or defined pensions. Enter current value and expected annual growth %.</div>
+      <div class="hint">Physical gold, property equity, end-of-service gratuity, or crypto. Enter current value, annual growth %, and any monthly investment you add.</div>
       <div class="rows" data-kind="asset"></div>
       <button class="add" data-add="asset">+ Add asset</button>
     </div>
@@ -446,22 +447,82 @@
     <div class="goalbox hidden" id="goalbox"><div class="lab">Goal check</div><div class="msg" id="goal-msg"></div></div>
 
     <!-- Day Book Adherence Widget -->
-    <div class="adh-box hidden" id="adh-box">
+    <div class="adh-box hidden" id="daybook-adherence-card">
       <div class="adh-hd">
         <span class="title">Plan vs. Actual (Day Book)</span>
-        <span class="adh-badge" id="adh-badge">—</span>
+        <span class="adh-badge" id="db-status-badge">—</span>
       </div>
-      <div class="adh-msg" id="adh-msg">Loading Day Book status…</div>
+      <div class="adh-msg">
+        Spent this month: <strong id="db-actual-exp">—</strong> (Planned: <span id="db-planned-exp">—</span>) · <span id="db-drift">—</span>
+      </div>
     </div>
 
     <!-- This Month Action Plan -->
     <div class="actionbox" id="actionbox">
-      <h3><span>This Month's Action Plan</span> <span class="sum" id="act-sum"></span></h3>
-      <div class="hint">Derived directly from Month 1 of your plan. Follow these transfers on payday:</div>
-      <ul class="act-list" id="act-list"></ul>
+      <h3><span>Action Plan · <span id="action-month-title">This Month</span></span> <span class="sum" id="act-sum"></span></h3>
+      <div class="hint">Derived directly from Month 1 of your trajectory. Follow these transfers on payday:</div>
+      <ul class="act-list" id="act-list">
+        <li class="act-item">
+          <div class="act-num">1</div>
+          <div class="act-main">
+            <div class="act-title">Total Monthly Income Received</div>
+            <div class="act-desc">Net incoming pay into primary checking account</div>
+          </div>
+          <div class="act-amt" id="act-income-num">—</div>
+        </li>
+        <li class="act-item">
+          <div class="act-num">2</div>
+          <div class="act-main">
+            <div class="act-title">Pay Fixed Obligations &amp; Living Expenses</div>
+            <div class="act-desc">Rent, utilities, food, transport &amp; life commitments</div>
+          </div>
+          <div class="act-amt" id="act-fixed-num">—</div>
+        </li>
+        <li class="act-item">
+          <div class="act-num">3</div>
+          <div class="act-main">
+            <div class="act-title">Scheduled Debt &amp; Card Minimums</div>
+            <div class="act-desc">Standard required monthly payments across all liabilities</div>
+          </div>
+          <div class="act-amt" id="act-min-num">—</div>
+        </li>
+        <li class="act-item" id="act-extra-item">
+          <div class="act-num">4</div>
+          <div class="act-main">
+            <div class="act-title">Targeted Extra Debt Paydown</div>
+            <div class="act-desc" id="act-extra-target">Accelerated paydown</div>
+          </div>
+          <div class="act-amt" id="act-extra-num">—</div>
+        </li>
+        <li class="act-item" id="act-assets-item">
+          <div class="act-num">5</div>
+          <div class="act-main">
+            <div class="act-title">Add to Other Assets (Gold, Property…)</div>
+            <div class="act-desc" id="act-assets-desc">Monthly physical asset accumulation</div>
+          </div>
+          <div class="act-amt" id="act-assets-num">—</div>
+        </li>
+        <li class="act-item">
+          <div class="act-num">6</div>
+          <div class="act-main">
+            <div class="act-title">Automate Monthly Stock Investing</div>
+            <div class="act-desc" id="act-inv-note">Index funds / equity market engine</div>
+          </div>
+          <div class="act-amt" id="act-inv-num">—</div>
+        </li>
+        <li class="act-item">
+          <div class="act-num">7</div>
+          <div class="act-main">
+            <div class="act-title">Unallocated Cushion / Cash Buffer</div>
+            <div class="act-desc">Accumulates in high-yield savings / checking buffer</div>
+          </div>
+          <div class="act-amt" id="act-cushion-num">—</div>
+        </li>
+      </ul>
       <div class="act-actions">
-        <button class="act-btn primary" id="act-copy">Copy Checklist</button>
-        <button class="act-btn" id="act-close-mo">Close Month &amp; Log Snapshot</button>
+        <button class="act-btn primary" id="btn-close-month">Record Current Status</button>
+        <button class="act-btn" id="btn-open-compare">Scenario Lab</button>
+        <button class="act-btn" id="btn-open-history">Snapshots History</button>
       </div>
     </div>
 
@@ -558,7 +619,20 @@
     <div class="sheet-meta"><span>The Ledger · Scenario Lab</span><button id="cmp-close" style="background:none;border:none;cursor:pointer;font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:14px">✕</button></div>
     <h2>Compare Scenarios</h2>
     <div class="hint">See how your current trajectory compares against alternate strategies side by side.</div>
-    <div id="compare-content"></div>
+    <div style="overflow-x:auto;margin-top:14px">
+      <table class="yrtable" style="width:100%">
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th class="r">Debt-free</th>
+            <th class="r">Interest</th>
+            <th class="r">NW (5 yrs)</th>
+            <th class="r">NW (10 yrs)</th>
+          </tr>
+        </thead>
+        <tbody id="cmp-tbody"></tbody>
+      </table>
+    </div>
     <div class="sheet-actions" style="margin-top:20px">
       <button id="cmp-btn-close">Close</button>
     </div>
@@ -577,7 +651,22 @@
       <button class="act-btn primary" id="hist-record-btn">Take Snapshot Today</button>
     </div>
     <h3 style="font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--ink-deep);margin:18px 0 6px">Past Logged Months</h3>
-    <div id="hist-list">No snapshots recorded yet. Click "Take Snapshot Today" or "Close Month" on the action plan to start tracking.</div>
+    <div style="overflow-x:auto">
+      <table class="yrtable" style="width:100%">
+        <thead>
+          <tr>
+            <th>Logged Date</th>
+            <th>Month</th>
+            <th class="r">Debt</th>
+            <th class="r">Cash</th>
+            <th class="r">Investments</th>
+            <th class="r">Net Worth</th>
+            <th class="r"></th>
+          </tr>
+        </thead>
+        <tbody id="hist-tbody"></tbody>
+      </table>
+    </div>
     <div class="sheet-actions" style="margin-top:20px">
       <button id="hist-clear-btn" style="color:#a32c00">Clear History</button>
       <button id="hist-btn-close">Close</button>
@@ -595,9 +684,9 @@
       <button class="act-btn primary" id="bk-dl-json">Download JSON Backup</button>
       <button class="act-btn" id="bk-dl-csv">Export 10-Yr CSV Schedule</button>
     </div>
-    <h3 style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--ink-deep);margin:18px 0 6px">Restore from JSON</h3>
-    <textarea id="bk-paste" class="bk-text" placeholder="Paste previously exported JSON backup here…"></textarea>
-    <div style="display:flex;gap:10px">
+    <h3 style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--ink-deep);margin:18px 0 6px">JSON Data / Restore</h3>
+    <textarea id="bk-json-area" class="bk-text" style="width:100%;height:140px;font-family:'JetBrains Mono',monospace;font-size:11px;padding:8px;border:1px solid var(--rule);background:var(--paper)" placeholder="Paste previously exported JSON backup here…"></textarea>
+    <div style="display:flex;gap:10px;margin-top:8px">
       <button class="act-btn" id="bk-apply-btn">Restore Data</button>
       <span id="bk-status" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);align-self:center"></span>
     </div>
@@ -624,7 +713,7 @@
     income:{cols:["name","amt"], labels:["Source","Amount / month"]},
     oblig:{cols:["name","amt"], labels:["Obligation","Amount / month"]},
     exp:{cols:["name","amt"], labels:["Expense","Amount / month"]},
-    asset:{cols:["name","amt","growth"], labels:["Asset / Gratuity","Value","Growth %/yr"]},
+    asset:{cols:["name","amt","growth","month"], labels:["Asset (Gold, Real Estate…)","Value today","Growth %/yr","Add / mo"]},
     debt:{cols:["name","bal","apr","pay","term"], labels:["Debt / Loan","Balance","APR %","Pay / mo","Term (mo)"]},
     card:{cols:["name","bal","apr","pay","minPct"], labels:["Card","Balance","APR %","Pay / mo","Min %"]},
     oneincome:{cols:["name","amt","month","rep"], labels:["Description","Amount","In mo #","Repeat"]},
@@ -649,7 +738,7 @@
     card:[["Credit card", "8000", "18", "800", "5"]],
     oblig:[["Rent & housing", "4000"],["Utilities & phone", "800"],["Subscriptions", "200"]],
     exp:[["Food & groceries", "2500"],["Transport", "900"],["Leisure & other", "1200"]],
-    asset:[["End-of-Service / Gratuity", "25000", "5"]],
+    asset:[["End-of-Service / Gratuity", "25000", "5", "0"], ["Physical Gold / Vault", "15000", "6", "500"]],
     oneincome:[["Annual bonus", "3000", "11", "12"]],
     onepay:[["Car maintenance", "1500", "5", "12"]]
   };
@@ -675,7 +764,7 @@
   /* ---------- build input rows ---------- */
   function addRow(kind, values){
     var spec=KINDS[kind], vals=values||[];
-    var cols = spec.cols.length===2?"cols-2":spec.cols.length===3?"cols-3b":spec.cols.length===4?"cols-4b":"cols-5";
+    var cols = spec.cols.length===2?"cols-2":spec.cols.length===3?"cols-3b":spec.cols.length===4?(kind==="asset"?"cols-4c":"cols-4b"):"cols-5";
     var row=el("div","row "+cols);
     spec.cols.forEach(function(c,i){
       var cell=el("div");
@@ -794,9 +883,10 @@
     var fixed0  = oblig0 + exp0;
 
     var assets0 = (st.asset||[]).map(function(a){
-      return {name:a.name||"Asset", amt:a.amt||0, growth:(a.growth||0)/100/12};
+      return {name:a.name||"Asset", amt:a.amt||0, growth:(a.growth||0)/100/12, month:a.month||0};
     });
     var totalAssets0 = assets0.reduce(function(a,b){return a+b.amt;},0);
+    var assetMonthlyAdd0 = assets0.reduce(function(a,b){return a+b.month;},0);
 
     var debts = st.debt.concat(st.card).filter(function(d){return d.bal>0;})
                  .map(function(d){
@@ -812,7 +902,7 @@
                  });
 
     var minTotal0 = debts.reduce(function(a,d){return a+d.pay;},0);
-    var freeCash0 = income0 - fixed0 - minTotal0;
+    var freeCash0 = income0 - fixed0 - minTotal0 - assetMonthlyAdd0;
     var need = st.inv.month + st.inv.extra;
     var warn = null;
 
@@ -821,7 +911,7 @@
     if(toxicDebts.length > 0){
       warn = "Interest warning: Payment on "+toxicDebts.map(function(d){return d.name;}).join(", ")+" is less than monthly interest. The balance will grow unless payment is increased.";
     } else if (freeCash0 < 0) {
-      warn = "Deficit: expenses and debt payments exceed income by "+fmt(-freeCash0)+" / month. The projection assumes you close this gap — shortfalls compound real financing cost.";
+      warn = "Deficit: expenses, asset purchases, and debt payments exceed income by "+fmt(-freeCash0)+" / month. The projection assumes you close this gap — shortfalls compound real financing cost.";
     } else if (need > freeCash0) {
       warn = "Your investing + extra-debt plan ("+fmt(need)+"/mo) exceeds the free surplus ("+fmt(freeCash0)+"/mo). The surplus funds whichever beats the other.";
     }
@@ -921,7 +1011,7 @@
         }
       });
 
-      var freeCash = income - fixed - currentMinTotal;
+      var freeCash = income - fixed - currentMinTotal - assetMonthlyAdd0;
       var alloc = allocate(freeCash, debts);
       var invAddWanted = alloc.invAdd, extra0 = alloc.extra0;
 
@@ -931,8 +1021,8 @@
       inv = inv*(1+rInv) + investNow;
       invLo = invLo*(1+rInvLo) + investNow;
 
-      // Update assets
-      assets.forEach(function(a){ a.amt = a.amt * (1 + a.growth); });
+      // Update other assets (growth + monthly investment)
+      assets.forEach(function(a){ a.amt = a.amt * (1 + a.growth) + (a.month||0); });
       assetTotal = assets.reduce(function(acc,a){ return acc + a.amt; }, 0);
 
       // Accrue debt interest
@@ -999,6 +1089,7 @@
             income:income0, fixed:fixed0, hasDebt: st.debt.concat(st.card).some(function(d){return d.bal>0;}),
             oneEvents:oneEvents, debtBeatsReturn:debtBeatsReturn0, maxDebtApr:maxDebtApr, bufferTarget:bufferTarget,
             bufferMonthsSetting:bufferMonthsSetting,
+            assetMonthlyAdd:assetMonthlyAdd0,
             taxCut:taxCut, hasInflation:(st.inv.infl||0)>0, hasRaise:(st.inv.raise||0)>0,
             sustainableWithdrawal: lastP.inv*0.04, nwRealEnd: lastP.nwReal, goal:st.goal,
             totalAssets: totalAssets0};
@@ -1016,8 +1107,8 @@
     // otherwise those stretches draw below the axis and vanish off-canvas.
     var maxV=1, minV=0;
     s.forEach(function(p){
-      var nw=p.inv+p.cash-p.debt, nwLo=p.invLo+p.cash-p.debt;
-      maxV=Math.max(maxV, p.debt, p.inv, p.cash, nw, nwLo);
+      var nw=p.inv+p.cash+(p.assets||0)-p.debt, nwLo=p.invLo+p.cash+(p.assets||0)-p.debt;
+      maxV=Math.max(maxV, p.debt, p.inv, p.cash, p.assets||0, nw, nwLo);
       minV=Math.min(minV, p.debt, p.inv, p.cash, nw, nwLo);
     });
     maxV*=1.08;
@@ -1210,6 +1301,7 @@
       {name:"Obligations (rent, utilities…)", val:oblig, color:"#8a7d6b"},
       {name:"Living expenses", val:exp, color:"#b5a88f"},
       {name:"Debt & card payments", val:res.minTotal, color:"#a32c00"},
+      {name:"Other assets (gold, property…)", val:res.assetMonthlyAdd||0, color:"#c28b38"},
       {name:"Stock investing", val:res.invAdd, color:"#3d6b4f"},
       {name:"Extra to debt", val:res.extraUsed, color:"#f54001"},
       {name: remaining>=0 ? "Remaining savings (unallocated)" : "Monthly shortfall", val:remaining, color: remaining>=0 ? "#ffc198" : "#7c1f00"}
@@ -1230,7 +1322,7 @@
       tb.appendChild(tr);
     });
 
-    var kept=res.invAdd+res.extraUsed+Math.max(0,remaining);
+    var kept=res.invAdd+(res.assetMonthlyAdd||0)+res.extraUsed+Math.max(0,remaining);
     var trT=el("tr","total");
     trT.appendChild(el("td",null,"Total kept — your savings rate"));
     trT.appendChild(el("td","r",fmt(kept)+"/mo"));
@@ -1345,6 +1437,22 @@
         : "No extra payment scheduled";
     }
 
+    var assetsItem = document.getElementById("act-assets-item");
+    var assetsNum = document.getElementById("act-assets-num");
+    var assetsDesc = document.getElementById("act-assets-desc");
+    if(assetsItem && assetsNum){
+      if(res.assetMonthlyAdd > 0){
+        assetsItem.style.display = "flex";
+        assetsNum.textContent = fmt(res.assetMonthlyAdd);
+        if(assetsDesc){
+          var namedAssets = (st.asset||[]).filter(function(a){ return (a.month||0)>0; }).map(function(a){ return a.name + " ("+fmt(a.month)+")"; });
+          assetsDesc.textContent = namedAssets.length ? namedAssets.join(", ") : "Monthly asset purchases";
+        }
+      } else {
+        assetsItem.style.display = "none";
+      }
+    }
+
     var invEl = document.getElementById("act-inv-num");
     if(invEl) invEl.textContent = fmt(res.invAdd);
 
@@ -1380,7 +1488,15 @@
     document.getElementById("sum-oblig").textContent = fmt(st.oblig.reduce(function(a,b){return a+b.amt;},0))+"/mo";
     document.getElementById("sum-exp").textContent   = fmt(st.exp.reduce(function(a,b){return a+b.amt;},0))+"/mo";
     var assetSumEl = document.getElementById("sum-asset");
-    if(assetSumEl) assetSumEl.textContent = st.asset && st.asset.length ? fmt(st.asset.reduce(function(a,b){return a+b.amt;},0)) : "";
+    if(assetSumEl){
+      if(st.asset && st.asset.length){
+        var totA = st.asset.reduce(function(a,b){return a+b.amt;},0);
+        var moA = st.asset.reduce(function(a,b){return a+(b.month||0);},0);
+        assetSumEl.textContent = fmt(totA) + (moA > 0 ? " (+" + fmt(moA) + "/mo)" : "");
+      } else {
+        assetSumEl.textContent = "";
+      }
+    }
     document.getElementById("sum-oneincome").textContent = st.oneincome.length ? fmt(st.oneincome.reduce(function(a,b){return a+b.amt;},0))+" total" : "";
     document.getElementById("sum-onepay").textContent    = st.onepay.length ? fmt(st.onepay.reduce(function(a,b){return a+b.amt;},0))+" total" : "";
 
@@ -1681,7 +1797,7 @@
     var monthlyOut=fixed+mins;
     var kept=res.invAdd+res.extraUsed+Math.max(0, free-res.invAdd-res.extraUsed);
     var saveRate=income>0?kept/income:0;
-    var nw0=res.series[0].inv+res.series[0].cash-res.series[0].debt;
+    var nw0=res.series[0].inv+res.series[0].cash+(res.series[0].assets||0)-res.series[0].debt;
 
     /* 0 — risk protection, asked before anything numeric because nothing below survives income stopping */
     if(income>0){
@@ -1826,20 +1942,21 @@
     if(res.zeroCross!=null && res.series[0].inv+res.series[0].cash-res.series[0].debt<0) parts.push("net worth turns positive "+monthLabel(res.start,res.zeroCross));
     document.getElementById("sh-verdict").textContent = parts.length ? "On today's numbers: "+parts.join(" · ")+"." : "Enter your numbers to begin.";
 
+    var nwAtSheet = function(m){ var p = at(m); return p.inv + p.cash + (p.assets||0) - p.debt; };
     var k="";
     k+=sheetKpi("Debt-free", !res.hasDebt?"—":(res.debtFreeM!=null?monthLabel(res.start,res.debtFreeM):"> 30 yrs"));
     k+=sheetKpi("Total interest", res.hasDebt?fmt(res.interest):"—");
     k+=sheetKpi("You keep / month", income>0?fmt(kept)+" · "+(saveRate*100).toFixed(0)+"%":"—");
     k+=sheetKpi("Buffer runway", monthlyOut>0?(st.inv.cash/monthlyOut).toFixed(1)+" months":"—");
     k+=sheetKpi("Investments · 5 yrs", fmt(at(60).inv));
-    k+=sheetKpi("Net worth · 5 yrs", fmt(at(60).inv+at(60).cash-at(60).debt));
-    k+=sheetKpi("Net worth · 10 yrs", fmt(at(120).inv+at(120).cash-at(120).debt));
+    k+=sheetKpi("Net worth · 5 yrs", fmt(nwAtSheet(60)));
+    k+=sheetKpi("Net worth · 10 yrs", fmt(nwAtSheet(120)));
     k+=sheetKpi("Sustainable draw", fmt(res.sustainableWithdrawal)+"/yr");
     document.getElementById("sh-kpis").innerHTML=k;
 
     var ms=[];
-    ms.push({m:-1, w:"Today", t:"Net worth stands at", v:fmt(res.series[0].inv+res.series[0].cash-res.series[0].debt)});
-    if(res.zeroCross!=null && res.series[0].inv+res.series[0].cash-res.series[0].debt<0) ms.push({m:res.zeroCross, w:monthLabel(res.start,res.zeroCross), t:"Net worth crosses zero", v:""});
+    ms.push({m:-1, w:"Today", t:"Net worth stands at", v:fmt(nwAtSheet(0))});
+    if(res.zeroCross!=null && nwAtSheet(0)<0) ms.push({m:res.zeroCross, w:monthLabel(res.start,res.zeroCross), t:"Net worth crosses zero", v:""});
     if(res.debtFreeM!=null) ms.push({m:res.debtFreeM, w:monthLabel(res.start,res.debtFreeM), t:"Final debt payment — debt-free", v:fmt(res.interest)+" total interest"});
     res.oneEvents.forEach(function(e){
       if(e.m>res.series.length-1) return;
@@ -2073,7 +2190,10 @@
   if(openCmpBtn) openCmpBtn.onclick = openCompareModal;
   var cmpCloseBtn = document.getElementById("cmp-close");
   if(cmpCloseBtn) cmpCloseBtn.onclick = closeCompareModal;
-  document.getElementById("compare-veil").addEventListener("click", function(e){ if(e.target===this) closeCompareModal(); });
+  var cmpBtnClose = document.getElementById("cmp-btn-close");
+  if(cmpBtnClose) cmpBtnClose.onclick = closeCompareModal;
+  var cmpVeil = document.getElementById("compare-veil");
+  if(cmpVeil) cmpVeil.addEventListener("click", function(e){ if(e.target===this) closeCompareModal(); });
 
   var openHistBtn = document.getElementById("btn-open-history");
   if(openHistBtn) openHistBtn.onclick = openHistoryModal;
@@ -2081,15 +2201,31 @@
   if(openCheckinBtn) openCheckinBtn.onclick = openHistoryModal;
   var histCloseBtn = document.getElementById("hist-close");
   if(histCloseBtn) histCloseBtn.onclick = closeHistoryModal;
-  document.getElementById("history-veil").addEventListener("click", function(e){ if(e.target===this) closeHistoryModal(); });
+  var histBtnClose = document.getElementById("hist-btn-close");
+  if(histBtnClose) histBtnClose.onclick = closeHistoryModal;
+  var histVeil = document.getElementById("history-veil");
+  if(histVeil) histVeil.addEventListener("click", function(e){ if(e.target===this) closeHistoryModal(); });
   var histRecordBtn = document.getElementById("hist-record-btn");
   if(histRecordBtn) histRecordBtn.onclick = recordCurrentSnapshot;
+  var histClearBtn = document.getElementById("hist-clear-btn");
+  if(histClearBtn){
+    histClearBtn.onclick = function(){
+      if(confirm("Clear all snapshot history?")){
+        saveSnapshots([]);
+        renderHistoryModal();
+        compute();
+      }
+    };
+  }
 
   var openBkBtn = document.getElementById("btn-open-backup");
   if(openBkBtn) openBkBtn.onclick = openBackupModal;
   var bkCloseBtn = document.getElementById("bk-close");
   if(bkCloseBtn) bkCloseBtn.onclick = closeBackupModal;
-  document.getElementById("backup-veil").addEventListener("click", function(e){ if(e.target===this) closeBackupModal(); });
+  var bkBtnClose = document.getElementById("bk-btn-close");
+  if(bkBtnClose) bkBtnClose.onclick = closeBackupModal;
+  var bkVeil = document.getElementById("backup-veil");
+  if(bkVeil) bkVeil.addEventListener("click", function(e){ if(e.target===this) closeBackupModal(); });
   var bkDlJsonBtn = document.getElementById("bk-dl-json");
   if(bkDlJsonBtn) bkDlJsonBtn.onclick = downloadJSON;
   var bkDlCsvBtn = document.getElementById("bk-dl-csv");
