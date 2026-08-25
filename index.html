@@ -231,35 +231,36 @@
   .sheet-top{border-bottom:4px double var(--ink);padding-bottom:16px;margin-bottom:20px}
   .sheet-meta{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
   .sheet-top h2, .modal-box h2{font-family:'Playfair Display',serif;font-weight:900;font-size:32px;color:var(--ink-deep);margin-top:8px}
-  .sheet-verdict{margin-top:8px;font-size:13.5px;color:var(--ink)}
+  .sheet-verdict{margin-top:8px;font-size:13.5px;color:var(--ink);line-height:1.5}
   .sheet-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--ink);border:1px solid var(--ink);margin-bottom:6px}
   .sheet-kpis .sk{background:var(--cream);padding:12px 14px}
   .sheet-kpis .sk .l{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-  .sheet-kpis .sk .v{font-family:'JetBrains Mono',monospace;font-size:16.5px;font-weight:700;color:var(--ink-deep);margin-top:2px}
-  .sh-h{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;color:var(--ink-deep);border-bottom:1px solid var(--ink);padding-bottom:4px;margin:24px 0 12px}
+  .sheet-kpis .sk .v{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--ink-deep);margin-top:2px}
+  .sh-section{margin-top:24px}
+  .sh-h{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--ink-deep);border-bottom:1px solid var(--ink);padding-bottom:4px;margin:22px 0 10px}
   .sh-sub{font-family:'Inter',sans-serif;font-size:11px;font-weight:400;color:var(--muted)}
   .timeline .tl{display:flex;gap:14px;padding:7px 0;border-bottom:1px solid var(--rule);align-items:baseline}
   .timeline .tl .w{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);min-width:96px}
   .timeline .tl .t{font-size:13px;color:var(--ink-deep)}
   .timeline .tl .v{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-align:right}
   .note{border-left:3px solid var(--muted);padding:9px 13px;margin-bottom:10px;background:var(--cream)}
-  .note .note-t{font-weight:600;font-size:13.5px;color:var(--ink-deep)}
-  .note .note-x{font-size:12.5px;color:var(--ink);margin-top:2px}
+  .note .note-t{font-weight:600;font-size:13px;color:var(--ink-deep)}
+  .note .note-x{font-size:12px;color:var(--ink);margin-top:2px;line-height:1.45}
   .note.good{border-color:var(--good)} .note.warn{border-color:#d9a441;display:block} .note.bad{border-color:#a32c00} .note.info{border-color:var(--muted)}
-  .reco{margin-left:18px;font-size:13px;color:var(--ink)}
-  .reco li{margin-bottom:8px;padding-left:4px}
+  .reco{margin-left:18px;font-size:12.5px;color:var(--ink);line-height:1.5}
+  .reco li{margin-bottom:6px;padding-left:4px}
   .sheet-actions{display:flex;gap:10px;margin-top:26px}
   .sheet-actions button{border:1px solid var(--ink);background:none;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:9px 18px;cursor:pointer;color:var(--ink-deep)}
   .sheet-actions button:hover{border-color:var(--accent);color:var(--accent)}
   .sheet-actions #sh-print{background:var(--accent);border-color:var(--accent);color:#fff}
-  .sheet-fine{margin-top:16px;font-size:10.5px;color:var(--muted)}
-  @media(max-width:640px){.sheet,.modal-box{padding:24px 18px}.sheet-kpis{grid-template-columns:repeat(2,1fr)}}
-  @media print{
-    body>*:not(.sheet-veil){display:none !important}
-    .sheet-veil{position:static;display:block !important;padding:0;background:none;overflow:visible}
-    .sheet{border:none;box-shadow:none;max-width:none;padding:0}
-    .sheet-actions{display:none}
-  }
+  .sheet-fine{margin-top:16px;font-size:10.5px;color:var(--muted);line-height:1.4}
+
+  /* signoff block */
+  .sh-signoff{margin-top:28px;padding-top:18px;border-top:1px dashed var(--rule)}
+  .sh-sign-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:12px}
+  .sh-sign-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .sh-sign-val{font-size:12px;font-weight:600;color:var(--ink-deep);margin-top:3px}
+  .sh-sign-line{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin-top:3px}
 
   /* compare scenarios */
   .compare-table{width:100%;border-collapse:collapse;margin:18px 0;font-size:12.5px}
@@ -274,12 +275,203 @@
 
   /* backup textarea */
   .bk-text{width:100%;height:140px;background:var(--cream);border:1px solid var(--rule);color:var(--ink-deep);font-family:'JetBrains Mono',monospace;font-size:11px;padding:8px;outline:none;margin:8px 0}
-  @media(max-width:640px){.sheet{padding:24px 18px}.sheet-kpis{grid-template-columns:repeat(2,1fr)}}
-  @media print{
-    body>*:not(.sheet-veil){display:none !important}
-    .sheet-veil{position:static;display:block !important;padding:0;background:none;overflow:visible}
-    .sheet{border:none;box-shadow:none;max-width:none;padding:0}
-    .sheet-actions{display:none}
+
+  @media(max-width:640px){
+    .sheet,.modal-box{padding:24px 18px}
+    .sheet-kpis{grid-template-columns:repeat(2,1fr)}
+    .sh-sign-grid{grid-template-columns:1fr}
+  }
+
+  /* =========================================================
+     A4 PRINT MEDIA RULES (Tailored specifically for A4 paper)
+     ========================================================= */
+  @page {
+    size: A4 portrait;
+    margin: 12mm 14mm 12mm 14mm;
+  }
+  @media print {
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    body {
+      background: #fff !important;
+      color: #111 !important;
+      font-size: 10.5pt !important;
+      line-height: 1.4 !important;
+    }
+    body > *:not(.sheet-veil) {
+      display: none !important;
+    }
+    .sheet-veil {
+      position: static !important;
+      display: block !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      background: none !important;
+      overflow: visible !important;
+      width: 100% !important;
+    }
+    .sheet {
+      border: none !important;
+      box-shadow: none !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      background: #fff !important;
+    }
+    .sheet-actions {
+      display: none !important;
+    }
+    .sheet-top {
+      border-bottom: 3px double #111 !important;
+      padding-bottom: 10px !important;
+      margin-bottom: 14px !important;
+    }
+    .sheet-top h2 {
+      font-size: 24pt !important;
+      margin-top: 4px !important;
+      color: #111 !important;
+    }
+    .sheet-meta {
+      font-size: 8.5pt !important;
+      color: #444 !important;
+    }
+    .sheet-verdict {
+      font-size: 11pt !important;
+      color: #222 !important;
+      margin-top: 6px !important;
+    }
+    .sheet-kpis {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 1px !important;
+      background: #111 !important;
+      border: 1px solid #111 !important;
+      margin-bottom: 12px !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    .sheet-kpis .sk {
+      background: #fdfaf6 !important;
+      padding: 8px 10px !important;
+    }
+    .sheet-kpis .sk .l {
+      font-size: 7.5pt !important;
+      color: #555 !important;
+    }
+    .sheet-kpis .sk .v {
+      font-size: 13pt !important;
+      color: #111 !important;
+    }
+    .sh-h {
+      font-size: 13.5pt !important;
+      border-bottom: 1px solid #111 !important;
+      margin: 14px 0 8px !important;
+      padding-bottom: 3px !important;
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+    }
+    .sh-sub {
+      font-size: 8.5pt !important;
+      color: #555 !important;
+    }
+    #sh-chart {
+      width: 100% !important;
+      max-width: 100% !important;
+      height: auto !important;
+      max-height: 240px !important;
+      display: block !important;
+    }
+    .legend {
+      font-size: 8pt !important;
+      margin-top: 6px !important;
+      gap: 12px !important;
+    }
+    .legend span {
+      opacity: 1 !important;
+    }
+    .yrtable {
+      font-size: 9pt !important;
+      margin-top: 8px !important;
+    }
+    .yrtable th {
+      font-size: 7.5pt !important;
+      padding: 4px 6px 4px 0 !important;
+      border-top: 1.5px solid #111 !important;
+      border-bottom: 1px solid #111 !important;
+      color: #333 !important;
+    }
+    .yrtable td {
+      font-size: 8.5pt !important;
+      padding: 3.5px 6px 3.5px 0 !important;
+      border-bottom: 1px solid #e0dcd6 !important;
+      color: #111 !important;
+    }
+    .timeline .tl {
+      padding: 4px 0 !important;
+      font-size: 9pt !important;
+      border-bottom: 1px solid #e0dcd6 !important;
+    }
+    .timeline .tl .w {
+      font-size: 8.5pt !important;
+      min-width: 85px !important;
+    }
+    .timeline .tl .t {
+      font-size: 9pt !important;
+    }
+    .timeline .tl .v {
+      font-size: 8.5pt !important;
+      color: #444 !important;
+    }
+    .note {
+      padding: 6px 10px !important;
+      margin-bottom: 6px !important;
+      background: #fdfaf6 !important;
+      border-left: 3px solid #888 !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    .note .note-t {
+      font-size: 9.5pt !important;
+    }
+    .note .note-x {
+      font-size: 8.5pt !important;
+      color: #333 !important;
+    }
+    .reco {
+      font-size: 9pt !important;
+      margin-left: 16px !important;
+    }
+    .reco li {
+      margin-bottom: 4px !important;
+    }
+    .sh-section, .sh-avoid-break {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    .sh-page-break {
+      page-break-before: always !important;
+      break-before: page !important;
+      height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      display: block !important;
+    }
+    .sh-signoff {
+      margin-top: 18px !important;
+      padding-top: 10px !important;
+      border-top: 1px dashed #999 !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    .sheet-fine {
+      font-size: 7.5pt !important;
+      color: #666 !important;
+      margin-top: 8px !important;
+    }
   }
 
   footer{border-top:1px solid var(--ink);background:var(--cream)}
@@ -309,7 +501,7 @@
         <option value="PHP">PHP — Philippine Peso</option>
       </select>
     </span>
-    <span><a href="#" id="open-compare">Scenarios</a> · <a href="#" id="open-history">Check-In / History</a> · <a href="#" id="open-backup">Backup &amp; Export</a> · <a href="daybook.html">The Day Book</a> · <a href="card.html">The Card Desk →</a></span>
+    <span><a href="#" id="open-compare">Scenarios</a> · <a href="#" id="open-history">Check-In / History</a> · <a href="#" id="open-backup">Backup &amp; Export</a> · <a href="#" id="open-sheet-top">Print Briefing (A4)</a> · <a href="daybook.html">The Day Book</a> · <a href="card.html">The Card Desk →</a></span>
   </div>
   <div class="nameplate">
     <h1>The Ledger</h1>
@@ -522,6 +714,7 @@
       </ul>
       <div class="act-actions">
         <button class="act-btn primary" id="btn-close-month">Record Current Status</button>
+        <button class="act-btn" id="btn-open-sheet-act">Print / View Briefing</button>
         <button class="act-btn" id="btn-open-compare">Scenario Lab</button>
         <button class="act-btn" id="btn-open-history">Snapshots History</button>
       </div>
@@ -578,8 +771,11 @@
 <div class="sheet-veil" id="sheet-veil">
   <div class="sheet">
     <div class="sheet-top">
-      <div class="sheet-meta"><span>The Ledger · Summary Sheet</span><span id="sh-date"></span></div>
-      <h2>Your Financial Briefing</h2>
+      <div class="sheet-meta">
+        <span>The Ledger · Strategic Financial Statement</span>
+        <span id="sh-date"></span>
+      </div>
+      <h2>Financial Briefing &amp; Statement</h2>
       <div class="sheet-verdict" id="sh-verdict"></div>
     </div>
 
@@ -588,31 +784,73 @@
       starting point for what a portfolio can pay out a year without depleting it, not a plan for the
       withdrawal phase itself.</p>
 
-    <h3 class="sh-h">Milestones on the current plan</h3>
-    <div class="timeline" id="sh-ms"></div>
-
-    <h3 class="sh-h">The trajectory</h3>
-    <canvas id="sh-chart" width="900" height="420"></canvas>
-    <div class="legend tight">
-      <span><i class="sw-debt"></i>Total debt</span>
-      <span><i class="sw-inv"></i>Stock investments</span>
-      <span><i class="sw-cash"></i>Cash savings</span>
-      <span><i class="sw-assets"></i>Assets &amp; gratuity</span>
-      <span><i class="sw-nw"></i>Net worth</span>
-      <span><i class="sw-nwlo"></i>Net worth (conservative)</span>
+    <div class="sh-section sh-avoid-break">
+      <h3 class="sh-h">Trajectory &amp; Wealth Accumulation</h3>
+      <canvas id="sh-chart" width="900" height="380" style="width:100%;height:auto;max-height:360px"></canvas>
+      <div class="legend tight">
+        <span><i class="sw-debt"></i>Total debt</span>
+        <span><i class="sw-inv"></i>Stock investments</span>
+        <span><i class="sw-cash"></i>Cash savings</span>
+        <span><i class="sw-assets"></i>Assets &amp; gratuity</span>
+        <span><i class="sw-nw"></i>Net worth</span>
+        <span><i class="sw-nwlo"></i>Net worth (conservative)</span>
+      </div>
     </div>
 
-    <h3 class="sh-h">The Analyst's Desk <span class="sh-sub">— automated read of your numbers, computed on this device</span></h3>
-    <div id="sh-desk"></div>
+    <div class="sh-section sh-avoid-break">
+      <h3 class="sh-h">Monthly Cash Flow Allocation <span class="sh-sub">— Month 1 transfer execution</span></h3>
+      <table class="yrtable" style="width:100%;margin-top:6px">
+        <thead><tr><th>Destination / Transfer</th><th class="r">Amount</th><th class="r">% of Income</th></tr></thead>
+        <tbody id="sh-flow-body"></tbody>
+      </table>
+    </div>
 
-    <h3 class="sh-h">Recommended moves, in order</h3>
-    <ol class="reco" id="sh-reco"></ol>
+    <!-- Page Break for Clean 2-Page A4 Printing -->
+    <div class="sh-page-break"></div>
+
+    <div class="sh-section sh-avoid-break">
+      <h3 class="sh-h">Milestones &amp; Strategic Targets</h3>
+      <div class="timeline" id="sh-ms"></div>
+    </div>
+
+    <div class="sh-section sh-avoid-break">
+      <h3 class="sh-h">10-Year Annual Projections</h3>
+      <table class="yrtable" style="width:100%;margin-top:6px">
+        <thead><tr><th>Date</th><th class="r">Debt Remaining</th><th class="r">Cash Savings</th><th class="r">Stock Investments</th><th class="r">Assets &amp; Gratuity</th><th class="r">Net Worth</th></tr></thead>
+        <tbody id="sh-yr-body"></tbody>
+      </table>
+    </div>
+
+    <div class="sh-section sh-avoid-break">
+      <h3 class="sh-h">The Analyst's Desk <span class="sh-sub">— automated audit computed on this device</span></h3>
+      <div id="sh-desk"></div>
+
+      <h3 class="sh-h" style="margin-top:16px">Recommended Moves, in Order</h3>
+      <ol class="reco" id="sh-reco"></ol>
+    </div>
+
+    <div class="sh-signoff sh-avoid-break">
+      <div class="sh-sign-grid">
+        <div>
+          <div class="sh-sign-label">Prepared For</div>
+          <div class="sh-sign-val">Personal Financial Plan</div>
+        </div>
+        <div>
+          <div class="sh-sign-label">Review Cadence</div>
+          <div class="sh-sign-val">Monthly on Payday</div>
+        </div>
+        <div>
+          <div class="sh-sign-label">Verification / Signature</div>
+          <div class="sh-sign-line">___________________________</div>
+        </div>
+      </div>
+      <div class="sheet-fine">Projections, not promises. Rates, markets and life will move — revisit this statement monthly and after any income, debt payoff, or rate change.</div>
+    </div>
 
     <div class="sheet-actions">
-      <button id="sh-print">Print / Save PDF</button>
+      <button id="sh-print">Print / Save PDF (A4)</button>
       <button id="sh-close">Close</button>
     </div>
-    <div class="sheet-fine">Projections, not promises. Rates, markets and life will move — revisit this sheet monthly and after any income or rate change.</div>
   </div>
 </div>
 
@@ -1969,6 +2207,29 @@
     k+=sheetKpi("Sustainable draw", fmt(res.sustainableWithdrawal)+"/yr");
     document.getElementById("sh-kpis").innerHTML=k;
 
+    // Monthly Cash Flow Allocation Table
+    var flowBody = document.getElementById("sh-flow-body");
+    if(flowBody){
+      flowBody.innerHTML = "";
+      var rows = [
+        { name: "Fixed Living Expenses", amt: res.fixed },
+        { name: "Debt Minimum Payments", amt: res.minTotal },
+        { name: "Extra Accelerated Debt Paydown", amt: res.extraUsed },
+        { name: "Monthly Stock Investments", amt: res.invAdd },
+        { name: "Assets & Gratuity Allocation", amt: res.assetAddMonth || 0 },
+        { name: "Cash Cushion / Unallocated Buffer", amt: Math.max(0, res.freeCash - res.invAdd - res.extraUsed) }
+      ];
+      rows.forEach(function(r){
+        if(r.amt > 0 || income > 0){
+          var tr = el("tr");
+          tr.appendChild(el("td", null, r.name));
+          tr.appendChild(el("td", "r", fmt(r.amt)));
+          tr.appendChild(el("td", "r", income > 0 ? ((r.amt / income) * 100).toFixed(1) + "%" : "—"));
+          flowBody.appendChild(tr);
+        }
+      });
+    }
+
     var ms=[];
     ms.push({m:-1, w:"Today", t:"Net worth stands at", v:fmt(nwAtSheet(0))});
     if(res.zeroCross!=null && nwAtSheet(0)<0) ms.push({m:res.zeroCross, w:monthLabel(res.start,res.zeroCross), t:"Net worth crosses zero", v:""});
@@ -1990,6 +2251,27 @@
       if(m.v) d.appendChild(elT("span","v",m.v));
       tl.appendChild(d);
     });
+
+    // 10-Year Annual Projections Table
+    var yrBody = document.getElementById("sh-yr-body");
+    if(yrBody){
+      yrBody.innerHTML = "";
+      for(var y=1; y<=10; y++){
+        var ym = y * 12;
+        if(ym <= res.series.length - 1){
+          var yp = at(ym);
+          var ynw = yp.inv + yp.cash + (yp.assets||0) - yp.debt;
+          var ytr = el("tr");
+          ytr.appendChild(el("td", null, monthLabel(res.start, ym) + " (Yr " + y + ")"));
+          ytr.appendChild(el("td", "r", fmt(yp.debt)));
+          ytr.appendChild(el("td", "r", fmt(yp.cash)));
+          ytr.appendChild(el("td", "r", fmt(yp.inv)));
+          ytr.appendChild(el("td", "r", fmt(yp.assets || 0)));
+          ytr.appendChild(el("td", "r", fmt(ynw)));
+          yrBody.appendChild(ytr);
+        }
+      }
+    }
 
     draw(res, document.getElementById("sh-chart"));
 
@@ -2189,10 +2471,20 @@
     document.getElementById("sheet-veil").style.display="none";
     document.body.style.overflow="";
   }
-  document.getElementById("open-sheet").onclick=openSheet;
+  var openSheetBtn = document.getElementById("open-sheet");
+  if(openSheetBtn) openSheetBtn.onclick = openSheet;
+  var openSheetTop = document.getElementById("open-sheet-top");
+  if(openSheetTop) openSheetTop.onclick = function(e){ e.preventDefault(); openSheet(); };
+  var openSheetAct = document.getElementById("btn-open-sheet-act");
+  if(openSheetAct) openSheetAct.onclick = openSheet;
   document.getElementById("sh-close").onclick=closeSheet;
   document.getElementById("sh-print").onclick=function(){ window.print(); };
   document.getElementById("sheet-veil").addEventListener("click", function(e){ if(e.target===this) closeSheet(); });
+
+  window.addEventListener("beforeprint", function(){
+    compute();
+    renderSheet(collect(), simulate(collect()));
+  });
 
   // Action plan buttons
   var closeMoBtn = document.getElementById("btn-close-month");
