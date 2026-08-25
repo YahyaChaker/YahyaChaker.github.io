@@ -1219,7 +1219,7 @@
 
     // month-1 allocation for action plan
     var alloc0 = allocate(freeCash0, debts);
-    var invAdd0 = (cash0>=bufferTarget && cash0>0 && freeCash0>0) ? alloc0.invAdd : 0;
+    var invAdd0 = (freeCash0 > 0 && cash0 >= 0) ? alloc0.invAdd : (freeCash0 > 0 ? Math.max(0, Math.min(alloc0.invAdd, freeCash0 + cash0)) : 0);
 
     // Identify month 1 extra target
     var firstExtraTarget = null;
@@ -1257,8 +1257,8 @@
       var alloc = allocate(freeCash, debts);
       var invAddWanted = alloc.invAdd, extra0 = alloc.extra0;
 
-      // Gate stock investments: cash must be strictly positive and meet safety buffer
-      var investNow = (cash >= bufferTarget && cash > 0 && freeCash > 0) ? invAddWanted : 0;
+      // Stock investments active when free cash is available and cash buffer is not negative
+      var investNow = (freeCash > 0 && cash >= 0) ? invAddWanted : (freeCash > 0 ? Math.max(0, Math.min(invAddWanted, freeCash + cash)) : 0);
 
       inv = inv*(1+rInv) + investNow;
       invLo = invLo*(1+rInvLo) + investNow;
@@ -2048,7 +2048,7 @@
     var debts=st.debt.concat(st.card).filter(function(d){return d.bal>0;}).slice().sort(function(a,b){return b.apr-a.apr;});
     var totalDebt=debts.reduce(function(a,d){return a+d.bal;},0);
     var monthlyOut=fixed+mins;
-    var kept=res.invAdd+res.extraUsed+Math.max(0, free-res.invAdd-res.extraUsed);
+    var kept=(res.assetMonthlyAdd||0)+res.invAdd+res.extraUsed+Math.max(0, free-res.invAdd-res.extraUsed);
     var saveRate=income>0?kept/income:0;
     var nw0=res.series[0].inv+res.series[0].cash+(res.series[0].assets||0)-res.series[0].debt;
 
@@ -2068,7 +2068,7 @@
       var pct=(saveRate*100).toFixed(1);
       F.push({tone: saveRate>=0.2?"good":(saveRate>=0.1?"warn":"bad"),
         title:"You keep "+pct+"% of income",
-        text:"Of "+fmt(income)+" coming in, "+fmt(kept)+" stays with you each month. "+(saveRate>=0.2?"That beats the 20% benchmark of the classic 50/30/20 rule — the engine of the whole plan.":(saveRate>=0.1?"Workable, but under the 20% benchmark of the 50/30/20 rule; each extra point compounds for decades.":"Under 10% — the trajectory stays slow until this rises. The biggest expense lines are the levers."))});
+        text:"Of "+fmt(income)+" coming in, "+fmt(kept)+" stays with you each month across savings, investments, assets, and debt principal paydown. "+(saveRate>=0.2?"That beats the 20% benchmark of the classic 50/30/20 rule — the engine of the whole plan.":(saveRate>=0.1?"Workable, but under the 20% benchmark of the 50/30/20 rule; each extra point compounds for decades.":"Under 10% — the trajectory stays slow until this rises. The biggest expense lines are the levers."))});
     }
 
     /* 2 — debt structure */
@@ -2107,18 +2107,18 @@
       var run=st.inv.cash/monthlyOut;
       F.push({tone: run>=3?"good":(run>=1?"warn":"bad"),
         title:"Cash buffer covers "+run.toFixed(1)+" months",
-        text:"Your cash of "+fmt(st.inv.cash)+" covers "+run.toFixed(1)+" months of total outgoings ("+fmt(monthlyOut)+"/mo). The safety band is 3–6 months"+(run<3?" — reaching 3 needs "+fmt(Math.max(0,3*monthlyOut-st.inv.cash))+" more. The projection itself now holds new stock contributions in cash until you're there, so the chart matches this advice instead of ignoring it.":" — you are inside it; extra cash beyond 6 months is better invested.")});
+        text:"Your cash of "+fmt(st.inv.cash)+" covers "+run.toFixed(1)+" months of total outgoings ("+fmt(monthlyOut)+"/mo). The safety band is 3–6 months"+(run<3?" — reaching 3 needs "+fmt(Math.max(0,3*monthlyOut-st.inv.cash))+" more. Surplus cash continues to build your cushion towards this target.":" — you are inside it; extra cash beyond 6 months is better invested.")});
       if(run<3){
-        R.push("Build the buffer to 3 months ("+fmt(3*monthlyOut)+") first. Hold it in a money-market or high-yield savings vehicle — never in stocks; the projection is already redirecting your \"Monthly to stocks\" amount into cash until this is met.");
+        R.push("Target a 3-month buffer ("+fmt(3*monthlyOut)+") in high-yield cash or money market funds to safeguard against unexpected obligations.");
       }
     }
 
-    /* 4 — investing pace */
-    if(income>0 && free>0){
+    /* 4 — stock investing pace */
+    if(income>0 && (res.invAdd>0 || st.inv.month>0)){
       var p5=res.series[Math.min(60,res.series.length-1)];
       F.push({tone:"info",
         title:"Investing "+fmt(res.invAdd)+"/month at a "+st.inv.ret+"% assumption",
-        text:"At that pace, investments read "+fmt(p5.inv)+" at the five-year mark"+(res.taxCut<1?" after tax":"")+" — a projection, not a promise. At half that return ("+(st.inv.ret/2).toFixed(1)+"%), the conservative line on the chart reads "+fmt(p5.invLo)+" at the same mark instead — turn it on from the legend to see the gap. Over long horizons the contribution rate matters more than the return assumption early on, so the habit beats the forecast."});
+        text:"At that pace, stock investments reach "+fmt(p5.inv)+" at the five-year mark"+(res.taxCut<1?" after tax":"")+" — a projection, not a promise. At half that return ("+(st.inv.ret/2).toFixed(1)+"%), the conservative line on the chart reads "+fmt(p5.invLo)+" at the same mark. Over long horizons, disciplined monthly contribution beats timing the market."});
       if(saveRate>=0.15 && res.invAdd>0){
         R.push("When income rises, raise the monthly investment before lifestyle — even +"+fmt(Math.round(income*0.02/100)*100)+"/month is visible by the five-year mark. Automate it on payday.");
       }
@@ -2130,6 +2130,18 @@
         F.push({tone:"info", title:"Income is stepped up "+st.inv.raise+"%/yr, not held flat",
           text:"Every figure on this sheet assumes income rises "+st.inv.raise+"% each year rather than staying at today's "+fmt(income)+". That's what pulls the debt-free date and the surplus forward compared to a flat-income version of the same plan — set it back to 0 to see the more conservative read."});
       }
+    }
+
+    /* 4b — other assets & gratuity */
+    if(res.totalAssets > 0 || (res.assetMonthlyAdd||0) > 0){
+      var p5Assets = (res.series[Math.min(60, res.series.length-1)].assets) || 0;
+      F.push({
+        tone: "good",
+        title: "Other Assets & Gratuity: " + fmt(res.totalAssets) + " today → " + fmt(p5Assets) + " in 5 yrs",
+        text: "Your non-stock holdings (physical gold, real estate equity, end-of-service gratuity) stand at " + fmt(res.totalAssets) +
+              ((res.assetMonthlyAdd||0) > 0 ? " with " + fmt(res.assetMonthlyAdd) + "/month ongoing additions." : ".") +
+              " This provides balance and inflation-resistant equity outside public markets."
+      });
     }
 
     /* 5 — net worth crossover */
@@ -2181,7 +2193,7 @@
   function renderSheet(st, res){
     var a=analyze(st,res);
     var income=res.income;
-    var kept=res.invAdd+res.extraUsed+Math.max(0,res.freeCash-res.invAdd-res.extraUsed);
+    var kept=(res.assetMonthlyAdd||0)+res.invAdd+res.extraUsed+Math.max(0,res.freeCash-res.invAdd-res.extraUsed);
     var saveRate=income>0?kept/income:0;
     var monthlyOut=res.fixed+res.minTotal;
     var at=function(m){ return res.series[Math.min(m,res.series.length-1)]; };
@@ -2201,8 +2213,12 @@
     k+=sheetKpi("Total interest", res.hasDebt?fmt(res.interest):"—");
     k+=sheetKpi("You keep / month", income>0?fmt(kept)+" · "+(saveRate*100).toFixed(0)+"%":"—");
     k+=sheetKpi("Buffer runway", monthlyOut>0?(st.inv.cash/monthlyOut).toFixed(1)+" months":"—");
-    k+=sheetKpi("Investments · 5 yrs", fmt(at(60).inv));
-    k+=sheetKpi("Net worth · 5 yrs", fmt(nwAtSheet(60)));
+    k+=sheetKpi("Stock Portfolio · 5 yrs", fmt(at(60).inv));
+    if(res.totalAssets > 0 || (res.assetMonthlyAdd||0) > 0){
+      k+=sheetKpi("Assets & Gratuity · 5 yrs", fmt(at(60).assets || 0));
+    } else {
+      k+=sheetKpi("Net worth · 5 yrs", fmt(nwAtSheet(60)));
+    }
     k+=sheetKpi("Net worth · 10 yrs", fmt(nwAtSheet(120)));
     k+=sheetKpi("Sustainable draw", fmt(res.sustainableWithdrawal)+"/yr");
     document.getElementById("sh-kpis").innerHTML=k;
@@ -2212,11 +2228,11 @@
     if(flowBody){
       flowBody.innerHTML = "";
       var rows = [
-        { name: "Fixed Living Expenses", amt: res.fixed },
+        { name: "Fixed Living Expenses (Obligations + Expenses)", amt: res.fixed },
         { name: "Debt Minimum Payments", amt: res.minTotal },
         { name: "Extra Accelerated Debt Paydown", amt: res.extraUsed },
-        { name: "Monthly Stock Investments", amt: res.invAdd },
-        { name: "Assets & Gratuity Allocation", amt: res.assetAddMonth || 0 },
+        { name: "Assets & Gratuity Allocation (Gold, Property…)", amt: res.assetMonthlyAdd || 0 },
+        { name: "Monthly Stock Investments (Index Funds, Equities)", amt: res.invAdd },
         { name: "Cash Cushion / Unallocated Buffer", amt: Math.max(0, res.freeCash - res.invAdd - res.extraUsed) }
       ];
       rows.forEach(function(r){
@@ -2228,6 +2244,15 @@
           flowBody.appendChild(tr);
         }
       });
+      if(income > 0){
+        var trTot = el("tr", "total");
+        trTot.style.fontWeight = "700";
+        trTot.style.borderTop = "1.5px solid var(--ink)";
+        trTot.appendChild(el("td", null, "Total Monthly Net Income"));
+        trTot.appendChild(el("td", "r", fmt(income)));
+        trTot.appendChild(el("td", "r", "100.0%"));
+        flowBody.appendChild(trTot);
+      }
     }
 
     var ms=[];
