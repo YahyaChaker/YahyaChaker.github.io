@@ -124,6 +124,7 @@
   .sw-debt{background:#a32c00}
   .sw-inv{background:#3d6b4f}
   .sw-cash{background:#d9a441}
+  .sw-assets{background:#c28b38}
   .sw-nw{background:#4f483e}
   .sw-nwlo{background:repeating-linear-gradient(90deg,#8a7d6b 0 4px,transparent 4px 7px)}
   .sw-hist{background:#111;display:inline-block;width:6px!important;height:6px!important;border-radius:50%}
@@ -559,13 +560,14 @@
         <span><i class="sw-debt"></i>Total debt</span>
         <span><i class="sw-inv"></i>Stock investments</span>
         <span><i class="sw-cash"></i>Cash savings</span>
+        <span><i class="sw-assets"></i>Assets &amp; gratuity</span>
         <span><i class="sw-nw"></i>Net worth</span>
         <span><i class="sw-nwlo"></i>Net worth (conservative)</span>
         <span id="sw-hist-item" class="hidden"><i class="sw-hist"></i>Actual history</span>
       </div>
       <table class="yrtable">
         <caption>Yearly summary</caption>
-        <thead><tr><th>Date</th><th class="r">Debt remaining</th><th class="r">Cash savings</th><th class="r">Investments</th><th class="r">Net worth</th></tr></thead>
+        <thead><tr><th>Date</th><th class="r">Debt remaining</th><th class="r">Cash savings</th><th class="r">Investments</th><th class="r">Assets &amp; gratuity</th><th class="r">Net worth</th></tr></thead>
         <tbody id="yr-body"></tbody>
       </table>
     </div>
@@ -595,6 +597,7 @@
       <span><i class="sw-debt"></i>Total debt</span>
       <span><i class="sw-inv"></i>Stock investments</span>
       <span><i class="sw-cash"></i>Cash savings</span>
+      <span><i class="sw-assets"></i>Assets &amp; gratuity</span>
       <span><i class="sw-nw"></i>Net worth</span>
       <span><i class="sw-nwlo"></i>Net worth (conservative)</span>
     </div>
@@ -660,6 +663,7 @@
             <th class="r">Debt</th>
             <th class="r">Cash</th>
             <th class="r">Investments</th>
+            <th class="r">Assets</th>
             <th class="r">Net Worth</th>
             <th class="r"></th>
           </tr>
@@ -1096,7 +1100,7 @@
   }
 
   /* ---------- chart ---------- */
-  var showDebt=true, showInv=true, showCash=true, showNW=true, showNWLo=false;
+  var showDebt=true, showInv=true, showCash=true, showAssets=true, showNW=true, showNWLo=false;
   function draw(res, cv){
     cv = cv || document.getElementById("chart");
     var ctx=cv.getContext("2d");
@@ -1148,11 +1152,12 @@
       s.forEach(function(p,i){ var x=X(i), y=Y(get(p)); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
       ctx.stroke(); if(dash) ctx.setLineDash([]);
     }
-    if(showDebt) line(function(p){return p.debt;}, "#a32c00");
-    if(showInv)  line(function(p){return p.inv;}, "#3d6b4f");
-    if(showCash) line(function(p){return p.cash;}, "#d9a441");
-    if(showNWLo) line(function(p){return p.invLo+p.cash+(p.assets||0)-p.debt;}, "#8a7d6b", 1.75, [5,3]);
-    if(showNW)   line(function(p){return p.inv+p.cash+(p.assets||0)-p.debt;}, "#4f483e", 2);
+    if(showDebt)   line(function(p){return p.debt;}, "#a32c00");
+    if(showInv)    line(function(p){return p.inv;}, "#3d6b4f");
+    if(showCash)   line(function(p){return p.cash;}, "#d9a441");
+    if(showAssets) line(function(p){return p.assets||0;}, "#c28b38");
+    if(showNWLo)   line(function(p){return p.invLo+p.cash+(p.assets||0)-p.debt;}, "#8a7d6b", 1.75, [5,3]);
+    if(showNW)     line(function(p){return p.inv+p.cash+(p.assets||0)-p.debt;}, "#4f483e", 2);
 
     // Draw historical actual snapshots if available
     var snaps = getSnapshots();
@@ -1224,11 +1229,12 @@
     ctx.strokeStyle="#4f483e"; ctx.lineWidth=1; ctx.setLineDash([2,3]);
     ctx.beginPath(); ctx.moveTo(x,cs.padT); ctx.lineTo(x,cs.H-cs.padB); ctx.stroke(); ctx.setLineDash([]);
     var series=[];
-    if(showDebt) series.push([p.debt,"#a32c00"]);
-    if(showInv)  series.push([p.inv,"#3d6b4f"]);
-    if(showCash) series.push([p.cash,"#d9a441"]);
-    if(showNWLo) series.push([p.invLo+p.cash-p.debt,"#8a7d6b"]);
-    if(showNW)   series.push([p.inv+p.cash-p.debt,"#4f483e"]);
+    if(showDebt)   series.push([p.debt,"#a32c00"]);
+    if(showInv)    series.push([p.inv,"#3d6b4f"]);
+    if(showCash)   series.push([p.cash,"#d9a441"]);
+    if(showAssets) series.push([p.assets||0,"#c28b38"]);
+    if(showNWLo)   series.push([p.invLo+p.cash+(p.assets||0)-p.debt,"#8a7d6b"]);
+    if(showNW)     series.push([p.inv+p.cash+(p.assets||0)-p.debt,"#4f483e"]);
     series.forEach(function(pt){
       var y=cs.Y(pt[0]);
       ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2); ctx.fillStyle=pt[1]; ctx.fill();
@@ -1253,13 +1259,14 @@
       idx=Math.max(0, Math.min(cs.n-1, idx));
       draw(cs.res, cv);
       drawCrosshair(cv, cs, idx);
-      var p=cs.res.series[idx], nw=p.inv+p.cash-p.debt;
+      var p=cs.res.series[idx], nw=p.inv+p.cash+(p.assets||0)-p.debt;
       var rows="";
-      if(showDebt) rows+=ttRow("sw-debt","Debt",fmt(p.debt));
-      if(showInv)  rows+=ttRow("sw-inv","Investments",fmt(p.inv));
-      if(showCash) rows+=ttRow("sw-cash","Cash",fmt(p.cash));
-      if(showNWLo) rows+=ttRow("sw-nwlo","Net worth (conservative)",fmt(p.invLo+p.cash-p.debt));
-      if(showNW)   rows+=ttRow("sw-nw","Net worth",fmt(nw));
+      if(showDebt)   rows+=ttRow("sw-debt","Debt",fmt(p.debt));
+      if(showInv)    rows+=ttRow("sw-inv","Investments",fmt(p.inv));
+      if(showCash)   rows+=ttRow("sw-cash","Cash",fmt(p.cash));
+      if(showAssets && (p.assets||0)>0) rows+=ttRow("sw-assets","Assets & gratuity",fmt(p.assets||0));
+      if(showNWLo)   rows+=ttRow("sw-nwlo","Net worth (conservative)",fmt(p.invLo+p.cash+(p.assets||0)-p.debt));
+      if(showNW)     rows+=ttRow("sw-nw","Net worth",fmt(nw));
       var evRows="";
       (cs.res.oneEvents||[]).filter(function(e){ return e.m===idx; }).forEach(function(e){
         evRows += '<div class="tt-row tt-event"><span>'+(e.kind==="in"?"▲ ":"▼ ")+e.name+'</span><span>'+(e.kind==="in"?"+":"−")+fmt(e.amt)+'</span></div>';
@@ -1531,6 +1538,7 @@
         tr.appendChild(el("td","r",fmt(p.debt)));
         tr.appendChild(el("td","r",fmt(p.cash)));
         tr.appendChild(el("td","r",fmt(p.inv)));
+        tr.appendChild(el("td","r",fmt(p.assets||0)));
         var nwVal = p.inv + p.cash + (p.assets||0) - p.debt;
         var nw=el("td","r",fmt(nwVal));
         if(nwVal<0) nw.style.color="#a32c00"; else nw.style.color="#3d6b4f";
@@ -1569,13 +1577,20 @@
   // legend toggles (scoped per legend so the summary-sheet legend doesn't share indices with the main one)
   document.querySelectorAll(".legend").forEach(function(legend){
     legend.querySelectorAll("span").forEach(function(sp,i){
+      if(sp.id === "sw-hist-item") return;
       sp.style.cursor="pointer";
       sp.onclick=function(){
-        if(i===0)showDebt=!showDebt; else if(i===1)showInv=!showInv; else if(i===2)showCash=!showCash; else if(i===3)showNW=!showNW; else showNWLo=!showNWLo;
-        sp.style.opacity=(i===0?showDebt:i===1?showInv:i===2?showCash:i===3?showNW:showNWLo)?1:0.35;
+        if(i===0) showDebt=!showDebt;
+        else if(i===1) showInv=!showInv;
+        else if(i===2) showCash=!showCash;
+        else if(i===3) showAssets=!showAssets;
+        else if(i===4) showNW=!showNW;
+        else if(i===5) showNWLo=!showNWLo;
+        var vis = (i===0?showDebt : i===1?showInv : i===2?showCash : i===3?showAssets : i===4?showNW : showNWLo);
+        sp.style.opacity = vis ? 1 : 0.35;
         compute();
       };
-      if(i===4) sp.style.opacity=0.35;
+      if(i===5) sp.style.opacity=0.35;
     });
   });
 
@@ -1890,13 +1905,13 @@
     if(res.hasInflation){
       var endP=res.series[res.series.length-1];
       F.push({tone:"info", title:"The final figure is "+fmt(endP.nwReal)+" in today's money",
-        text:"At "+monthLabel(res.start,endP.m)+", the chart's nominal net worth reads "+fmt(endP.inv+endP.cash-endP.debt)+" — but at your "+st.inv.infl+"% inflation assumption, that buys what "+fmt(endP.nwReal)+" buys today. Plan against the second number."});
+        text:"At "+monthLabel(res.start,endP.m)+", the chart's nominal net worth reads "+fmt(endP.inv+endP.cash+(endP.assets||0)-endP.debt)+" — but at your "+st.inv.infl+"% inflation assumption, that buys what "+fmt(endP.nwReal)+" buys today. Plan against the second number."});
     }
 
     /* 6 — goal check */
     if(st.goal && st.goal.amt>0){
       var gEnd=res.series[Math.min(st.goal.month, res.series.length-1)];
-      var gVal=gEnd ? gEnd.inv+gEnd.cash-gEnd.debt : null;
+      var gVal=gEnd ? gEnd.inv+gEnd.cash+(gEnd.assets||0)-gEnd.debt : null;
       var onTrack = gVal!=null && st.goal.month<res.series.length && gVal>=st.goal.amt;
       if(onTrack){
         F.push({tone:"good", title:"On track for "+fmt(st.goal.amt)+" by "+monthLabel(res.start,st.goal.month),
@@ -1909,10 +1924,10 @@
           var stT=JSON.parse(JSON.stringify(st)); stT.inv.month=st.inv.month+mid;
           var rT=simulate(stT);
           var pT=rT.series[Math.min(st.goal.month, rT.series.length-1)];
-          var vT = pT ? pT.inv+pT.cash-pT.debt : -Infinity;
+          var vT = pT ? pT.inv+pT.cash+(pT.assets||0)-pT.debt : -Infinity;
           if(st.goal.month<rT.series.length && vT>=st.goal.amt){ needed=mid; hi=mid; } else { lo=mid; }
         }
-        var short = st.goal.amt - (gVal!=null?gVal:res.series[res.series.length-1].inv+res.series[res.series.length-1].cash-res.series[res.series.length-1].debt);
+        var short = st.goal.amt - (gVal!=null?gVal:res.series[res.series.length-1].inv+res.series[res.series.length-1].cash+(res.series[res.series.length-1].assets||0)-res.series[res.series.length-1].debt);
         F.push({tone:"warn", title:"Short of "+fmt(st.goal.amt)+" by "+monthLabel(res.start,st.goal.month),
           text: needed!=null
             ? "The current plan falls "+fmt(Math.max(0,short))+" short at that month. Adding "+fmt(needed)+"/month more to stocks closes it by the deadline, all else equal."
@@ -1935,14 +1950,14 @@
 
     document.getElementById("sh-date").textContent = new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})+" · all figures in "+CUR;
 
+    var nwAtSheet = function(m){ var p = at(m); return p.inv + p.cash + (p.assets||0) - p.debt; };
     var parts=[];
     if(res.debtFreeM!=null) parts.push("debt-free in "+res.debtFreeM+" months ("+monthLabel(res.start,res.debtFreeM)+")");
     else if(res.hasDebt) parts.push("debt runs beyond the horizon at the current pace");
     if(income>0) parts.push("you keep "+(saveRate*100).toFixed(0)+"% of income");
-    if(res.zeroCross!=null && res.series[0].inv+res.series[0].cash-res.series[0].debt<0) parts.push("net worth turns positive "+monthLabel(res.start,res.zeroCross));
+    if(res.zeroCross!=null && nwAtSheet(0)<0) parts.push("net worth turns positive "+monthLabel(res.start,res.zeroCross));
     document.getElementById("sh-verdict").textContent = parts.length ? "On today's numbers: "+parts.join(" · ")+"." : "Enter your numbers to begin.";
 
-    var nwAtSheet = function(m){ var p = at(m); return p.inv + p.cash + (p.assets||0) - p.debt; };
     var k="";
     k+=sheetKpi("Debt-free", !res.hasDebt?"—":(res.debtFreeM!=null?monthLabel(res.start,res.debtFreeM):"> 30 yrs"));
     k+=sheetKpi("Total interest", res.hasDebt?fmt(res.interest):"—");
@@ -1963,9 +1978,9 @@
       ms.push({m:e.m, w:monthLabel(res.start,e.m), t:(e.kind==="in"?"One-time income — ":"One-time payment — ")+e.name, v:(e.kind==="in"?"+":"−")+fmt(e.amt)});
     });
     if(st.goal && st.goal.amt>0 && st.goal.month<=res.series.length-1){
-      ms.push({m:st.goal.month, w:monthLabel(res.start,st.goal.month), t:"Goal target — "+fmt(st.goal.amt), v:"projected "+fmt(at(st.goal.month).inv+at(st.goal.month).cash-at(st.goal.month).debt)});
+      ms.push({m:st.goal.month, w:monthLabel(res.start,st.goal.month), t:"Goal target — "+fmt(st.goal.amt), v:"projected "+fmt(nwAtSheet(st.goal.month))});
     }
-    [12,36,60,120].forEach(function(m){ if(m<=res.series.length-1){ var p=at(m); ms.push({m:m, w:monthLabel(res.start,m), t:(m/12)+"-year mark", v:"savings "+fmt(p.cash)+" · investments "+fmt(p.inv)}); }});
+    [12,36,60,120].forEach(function(m){ if(m<=res.series.length-1){ var p=at(m); ms.push({m:m, w:monthLabel(res.start,m), t:(m/12)+"-year mark", v:"savings "+fmt(p.cash)+" · investments "+fmt(p.inv)+(p.assets?" · assets "+fmt(p.assets):"")}); }});
     ms.sort(function(a,b){ return a.m-b.m; });
     var tl=document.getElementById("sh-ms"); tl.innerHTML="";
     ms.forEach(function(m){
@@ -2042,7 +2057,7 @@
     if(!snaps.length){
       var tr = el("tr");
       var td = el("td", null, "No monthly snapshots recorded yet. Click 'Record Current Status' to log this month.");
-      td.colSpan = 7;
+      td.colSpan = 8;
       tr.appendChild(td);
       tbody.appendChild(tr);
       return;
@@ -2056,6 +2071,7 @@
       tr.appendChild(el("td", "r", fmt(s.debt)));
       tr.appendChild(el("td", "r", fmt(s.cash)));
       tr.appendChild(el("td", "r", fmt(s.inv)));
+      tr.appendChild(el("td", "r", fmt(s.assets||0)));
       tr.appendChild(el("td", "r", fmt(s.nw)));
       var actTd = el("td", "r");
       var delBtn = el("button", "btn", "✕");
